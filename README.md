@@ -5,7 +5,13 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 ## 한국어 빠른 시작
 
 1. 내려받은 ZIP 패키지의 압축을 푼다.
-2. ChatGPT 데스크톱 앱 또는 Codex에서 저장소 폴더를 로컬 플러그인 마켓플레이스로 추가한다: `codex plugin marketplace add .`
+2. GitHub에서 바로 추가하거나, 내려받아 압축을 푼 뒤 저장소 폴더를 추가한다:
+
+   ```sh
+   codex plugin marketplace add delight0517-art/chatgpt-attention-alert
+   # 또는 다운로드/압축 해제 후 해당 폴더에서:
+   codex plugin marketplace add .
+   ```
 3. 앱을 다시 열고 Plugins에서 **ChatGPT Attention Alert**를 설치한다.
 4. macOS는 `./install-macos.sh`, Windows PowerShell은 `Set-ExecutionPolicy -Scope Process Bypass` 후 `./Install-Windows.ps1`을 실행해 OS 알림 도우미를 설치한다.
 
@@ -31,9 +37,11 @@ The plugin provides reusable agent instructions; the native companion must also 
 ## Install the plugin in ChatGPT desktop / Codex
 
 1. Download and unzip this repository, or clone it.
-2. From the repository root, add its local marketplace:
+2. Add the GitHub marketplace, or from the repository root add the downloaded local marketplace:
 
    ```sh
+   codex plugin marketplace add delight0517-art/chatgpt-attention-alert
+   # Or, from the downloaded repository folder:
    codex plugin marketplace add .
    ```
 
