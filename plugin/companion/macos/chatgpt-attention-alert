@@ -1,0 +1,48 @@
+#!/bin/zsh
+set -euo pipefail
+
+root="$HOME/.local/share/chatgpt-attention-alert"
+config="$HOME/.config/chatgpt-attention-alert"
+pref="$config/sound"
+mkdir -p "$config"
+
+if [[ "${1:-}" == "--sound" ]]; then
+  case "${2:-}" in
+    on|off) print -r -- "$2" > "$pref" ;;
+    toggle)
+      if [[ -r "$pref" && "$(<"$pref")" == "off" ]]; then
+        print -r -- on > "$pref"
+      else
+        print -r -- off > "$pref"
+      fi
+      ;;
+    *) print "Usage: chatgpt-attention-alert --sound on|off|toggle" >&2; exit 2 ;;
+  esac
+  exit 0
+fi
+
+title=${1:-}
+message=${2:-"Please check this chat."}
+chat_url=${3:-}
+sound=on
+if [[ -r "$pref" ]]; then sound=$(<"$pref"); fi
+[[ "$sound" == "off" ]] || sound=on
+if [[ -z "$title" ]]; then
+  title="Chat title unavailable"
+  sound=off
+fi
+if [[ "$sound" == "on" ]]; then
+  if [[ "$chat_url" == https://chatgpt.com/* || "$chat_url" == https://chat.openai.com/* ]]; then
+    /usr/bin/open "$chat_url"
+  else
+    sound=off
+  fi
+fi
+
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" >/dev/null 2>&1 </dev/null &!
+if [[ "$sound" == "on" ]]; then
+  for _ in 1 2 3; do
+    /usr/bin/afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 || true
+    /bin/sleep 0.25
+  done
+fi
