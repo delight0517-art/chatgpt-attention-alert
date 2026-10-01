@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatGPT Attention Alert — 채팅 이름이 보이는 데스크톱 알림</title>
+  <meta name="description" content="ChatGPT 또는 Codex 데스크톱에서 어떤 채팅의 확인이 필요한지 제목과 함께 표시하는 오픈소스 알림 도우미. macOS와 Windows 지원.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://delight0517-art.github.io/chatgpt-attention-alert/">
+  <meta property="og:title" content="ChatGPT Attention Alert">
+  <meta property="og:description" content="소리가 나면 어떤 채팅인지 함께 보이는 macOS·Windows 오픈소스 데스크톱 도우미.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://delight0517-art.github.io/chatgpt-attention-alert/">
+  <style>
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#121a2d; --ink:#eef3ff; --muted:#aab6cc; --accent:#83e6c0; --line:#283550; }
+    * { box-sizing:border-box }
+    body { margin:0; background:radial-gradient(ellipse at 80% 0,#172845 0,transparent 42%),var(--bg); color:var(--ink); font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif }
+    main { width:min(920px,calc(100% - 36px)); margin:0 auto; padding:64px 0 48px }
+    .tag { color:var(--accent); font-weight:700; letter-spacing:.08em; text-transform:uppercase; font-size:.8rem }
+    h1 { font-size:clamp(2.4rem,7vw,4.4rem); line-height:1.08; letter-spacing:-.045em; margin:.6rem 0 1rem }
+    h2 { margin-top:2.3rem; font-size:1.45rem }
+    p,li { color:var(--muted) }
+    .lead { max-width:720px; font-size:1.2rem }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin:26px 0 38px }
+    a.button { display:inline-block; padding:11px 17px; border-radius:10px; background:var(--accent); color:#07150f; text-decoration:none; font-weight:750 }
+    a.secondary { background:transparent; color:var(--ink); border:1px solid var(--line) }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px }
+    article { padding:18px; background:var(--panel); border:1px solid var(--line); border-radius:14px }
+    article h3 { margin:.1rem 0 .55rem }
+    code { color:#d4f7e9; background:#17223a; padding:.12em .35em; border-radius:5px }
+    a { color:var(--accent) }
+    footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem }
+    @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto } }
+  </style>
+</head>
+<body>
+<main>
+  <span class="tag">Open source · MIT · macOS + Windows</span>
+  <h1>ChatGPT<br>Attention Alert</h1>
+  <p class="lead">알림 소리만 울리고 어느 채팅인지 놓치는 일을 줄이기 위한 데스크톱 도우미입니다. 알림 카드에 채팅 제목과 해야 할 일을 표시하고, 사용자가 확인할 때까지 화면에 남깁니다.</p>
+  <div class="actions">
+    <a class="button" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest">최신 버전 다운로드</a>
+    <a class="button secondary" href="https://github.com/delight0517-art/chatgpt-attention-alert">GitHub 소스 보기</a>
+  </div>
+  <h2>동작 원칙</h2>
+  <div class="grid">
+    <article><h3>채팅을 먼저 확인</h3><p>유효한 ChatGPT 대화 URL을 전달하면 해당 대화를 연 뒤 소리를 냅니다. 제목이나 대화 URL을 추측하지 않습니다.</p></article>
+    <article><h3>제목과 요청을 계속 표시</h3><p>떠 있는 카드에 채팅 제목과 필요한 작업을 표시합니다. 사용자가 카드에서 확인하기 전까지 카드는 유지됩니다.</p></article>
+    <article><h3>소리 켜기·끄기</h3><p>카드 또는 명령줄에서 소리를 켜고 끌 수 있습니다. 소리가 꺼져 있어도 카드 알림은 표시됩니다.</p></article>
+    <article><h3>로컬에서 실행</h3><p>알림 제목과 내용은 외부 서버로 보내지 않습니다. 공개 저장소의 코드를 직접 확인하고 수정할 수 있습니다.</p></article>
+  </div>
+  <h2>설치</h2>
+  <ol>
+    <li><a href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest">GitHub Releases</a>에서 ZIP을 받거나 저장소를 복제합니다.</li>
+    <li>ChatGPT 데스크톱 또는 Codex에서 로컬 플러그인 마켓플레이스를 추가하고 <strong>ChatGPT Attention Alert</strong> 플러그인을 설치합니다. 저장소 README에 명령이 있습니다.</li>
+    <li>macOS에서는 <code>./install-macos.sh</code>, Windows PowerShell에서는 <code>./Install-Windows.ps1</code>을 실행해 해당 운영체제의 알림 도우미를 설치합니다.</li>
+  </ol>
+  <h2>요구 사항과 범위</h2>
+  <p>플러그인은 에이전트에 알림 도우미 사용법을 제공합니다. 실제 소리와 화면 카드는 컴퓨터에 설치한 macOS 또는 Windows 동반 프로그램이 표시합니다. 따라서 ChatGPT 웹사이트만 열어 둔 환경에서는 컴퓨터 알림을 직접 띄울 수 없습니다. 현재 배포는 GitHub 오픈소스 패키지이며 OpenAI의 공개 플러그인 디렉터리 등록을 의미하지 않습니다.</p>
+  <p>알림에 특정 채팅을 표시하려면 호출하는 쪽에서 그 채팅의 제목과 URL을 제공해야 합니다. URL이 없거나 지원 도메인의 URL이 아니면 소리를 재생하지 않습니다.</p>
+  <footer>MIT License · <a href="https://github.com/delight0517-art/chatgpt-attention-alert">Source code, installation guide, and issue tracker</a></footer>
+</main>
+</body>
+</html>

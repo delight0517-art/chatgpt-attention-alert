@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://delight0517-art.github.io/chatgpt-attention-alert/sitemap.xml
