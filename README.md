@@ -92,7 +92,7 @@ The process-scoped execution policy does not change the machine's persistent Pow
 
 ## Open a specific chat
 
-Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` on Windows. For safety, automatic opening accepts only `chatgpt.com` and `chat.openai.com`. When sound is enabled, the companion opens that chat before playing the alert. The card also shows an **Open chat** button. The companion does not guess a chat URL from its title.
+Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` on Windows. For safety, automatic opening accepts only `chatgpt.com` and `chat.openai.com`. When sound is enabled, the companion opens that chat before playing the alert. Clicking the card background, title, or message also opens the conversation; the sound and acknowledge buttons keep their own actions. The card also shows an **Open chat** button. The companion does not guess a chat URL from its title.
 
 ## Project layout
 

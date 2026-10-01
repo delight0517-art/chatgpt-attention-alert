@@ -57,6 +57,8 @@ $form.MinimizeBox = $false
 $form.ShowInTaskbar = $true
 $form.BackColor = [System.Drawing.Color]::FromArgb(14, 23, 36)
 $form.ForeColor = [System.Drawing.Color]::White
+$openChat = { if ($chatUrlValid) { Start-Process -FilePath $ChatUrl } }
+$form.Add_Click($openChat)
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $form.Location = [System.Drawing.Point]::new(($bounds.Right - $form.Width - 24), ($bounds.Top + 24))
 
@@ -66,6 +68,7 @@ $heading.ForeColor = [System.Drawing.Color]::FromArgb(97, 235, 255)
 $heading.Font = New-Object System.Drawing.Font('Segoe UI', 10, [System.Drawing.FontStyle]::Bold)
 $heading.Location = [System.Drawing.Point]::new(20, 16)
 $heading.Size = [System.Drawing.Size]::new(490, 24)
+$heading.Add_Click($openChat)
 $form.Controls.Add($heading)
 
 $chatTitle = New-Object System.Windows.Forms.Label
@@ -73,6 +76,7 @@ $chatTitle.Text = $Title
 $chatTitle.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
 $chatTitle.Location = [System.Drawing.Point]::new(20, 47)
 $chatTitle.Size = [System.Drawing.Size]::new(490, 44)
+$chatTitle.Add_Click($openChat)
 $form.Controls.Add($chatTitle)
 
 $action = New-Object System.Windows.Forms.Label
@@ -80,6 +84,7 @@ $action.Text = $Message
 $action.Font = New-Object System.Drawing.Font('Segoe UI', 10)
 $action.Location = [System.Drawing.Point]::new(20, 98)
 $action.Size = [System.Drawing.Size]::new(490, 66)
+$action.Add_Click($openChat)
 $form.Controls.Add($action)
 
 $mute = New-Object System.Windows.Forms.Button
@@ -98,7 +103,7 @@ if ($chatUrlValid) {
     $open.Text = '채팅 열기'
     $open.Location = [System.Drawing.Point]::new(322, 176)
     $open.Size = [System.Drawing.Size]::new(90, 30)
-    $open.Add_Click({ Start-Process -FilePath $ChatUrl })
+    $open.Add_Click($openChat)
     $form.Controls.Add($open)
 }
 

@@ -13,7 +13,7 @@ let canOpenChat: Bool = {
     return true
 }()
 
-final class AlertActions: NSObject {
+final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     @objc func acknowledge(_ sender: Any?) {
         NSApp.terminate(nil)
     }
@@ -29,6 +29,15 @@ final class AlertActions: NSObject {
     @objc func openChat(_ sender: Any?) {
         guard canOpenChat, let url = URL(string: chatURL) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    @objc func openChatFromCard(_ sender: Any?) {
+        openChat(sender)
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        guard canOpenChat, let view = gestureRecognizer.view else { return false }
+        return !(view.hitTest(gestureRecognizer.location(in: view)) is NSButton)
     }
 }
 
@@ -85,6 +94,9 @@ action.maximumNumberOfLines = 3
 card.addSubview(action)
 
 let actions = AlertActions()
+let cardClick = NSClickGestureRecognizer(target: actions, action: #selector(AlertActions.openChatFromCard(_:)))
+cardClick.delegate = actions
+card.addGestureRecognizer(cardClick)
 let sound = NSButton(title: soundEnabled ? "소리 끄기" : "소리 켜기", target: actions, action: #selector(AlertActions.toggleSound(_:)))
 sound.frame = NSRect(x: 20, y: 16, width: 104, height: 28)
 sound.bezelStyle = .rounded
