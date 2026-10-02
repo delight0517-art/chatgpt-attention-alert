@@ -24,6 +24,8 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Uses an opaque card and offsets simultaneous alerts so their arrival order remains visible.
 - Keeps the card open until the user acknowledges it.
 - Leaves keyboard focus with the app you are using; typing, including Enter, does not dismiss the alert.
+- Plays the alert sound after the card appears; `×` closes that alert, and clicking the card opens its conversation.
+- Adds a **24시간 중지** button that suppresses new alerts for 24 hours.
 - Lets the user toggle sound from the card or command line.
 - Lets the user choose a custom `.wav` alert sound on macOS and Windows, or restore the system sound.
 - Offers an **Open chat** button only when a chat URL is provided.

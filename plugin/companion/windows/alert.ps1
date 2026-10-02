@@ -11,6 +11,7 @@ $ErrorActionPreference = 'Stop'
 $configDir = Join-Path $env:APPDATA 'ChatGPTAttentionAlert'
 $soundPreferenceFile = Join-Path $configDir 'sound.txt'
 $customSoundPreferenceFile = Join-Path $configDir 'sound-file.txt'
+$pauseUntilPreferenceFile = Join-Path $configDir 'pause-until.txt'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 
 if (-not [string]::IsNullOrWhiteSpace($SetSoundFile)) {
@@ -35,6 +36,14 @@ if ($Sound -ne 'show') {
     exit 0
 }
 
+if (Test-Path -LiteralPath $pauseUntilPreferenceFile) {
+    try {
+        $pauseUntil = [DateTime]::Parse((Get-Content -Raw -LiteralPath $pauseUntilPreferenceFile)).ToUniversalTime()
+        if ([DateTime]::UtcNow -lt $pauseUntil) { exit 0 }
+    } catch { }
+    Remove-Item -Force -LiteralPath $pauseUntilPreferenceFile
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $script:soundEnabled = if (Test-Path $soundPreferenceFile) { (Get-Content -Raw $soundPreferenceFile).Trim() -ne 'off' } else { $true }
@@ -52,19 +61,6 @@ if ($script:soundEnabled -and -not $chatUrlValid) {
     $script:soundEnabled = $false
 }
 
-if ($script:soundEnabled) {
-    Start-Process -FilePath $ChatUrl
-    if ($script:customSoundPath -and (Test-Path -LiteralPath $script:customSoundPath -PathType Leaf)) {
-        $script:soundPlayer = New-Object System.Media.SoundPlayer -ArgumentList $script:customSoundPath
-        $script:soundPlayer.Play()
-    } else {
-        1..3 | ForEach-Object {
-            [System.Media.SystemSounds]::Asterisk.Play()
-            Start-Sleep -Milliseconds 250
-        }
-    }
-}
-
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'ChatGPT Attention Alert'
 $form.Size = [System.Drawing.Size]::new(540, 250)
@@ -76,7 +72,7 @@ $form.MinimizeBox = $false
 $form.ShowInTaskbar = $true
 $form.BackColor = [System.Drawing.Color]::FromArgb(14, 23, 36)
 $form.ForeColor = [System.Drawing.Color]::White
-$openChat = { if ($chatUrlValid) { Start-Process -FilePath $ChatUrl } }
+$openChat = { if ($chatUrlValid) { Start-Process -FilePath $ChatUrl; $form.Close() } }
 $form.Add_Click($openChat)
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $stackFile = Join-Path $configDir 'stack-index.txt'
@@ -92,6 +88,16 @@ try {
 $stackSlots = [Math]::Max(1, [int]([Math]::Min(($bounds.Width - $form.Width), ($bounds.Height - $form.Height)) / 28) + 1)
 $offset = ($stackIndex % $stackSlots) * 28
 $form.Location = [System.Drawing.Point]::new(($bounds.Right - $form.Width - 24 - $offset), ($bounds.Top + 24 + $offset))
+$form.Add_Shown({
+    if ($script:soundEnabled) {
+        if ($script:customSoundPath -and (Test-Path -LiteralPath $script:customSoundPath -PathType Leaf)) {
+            $script:soundPlayer = New-Object System.Media.SoundPlayer -ArgumentList $script:customSoundPath
+            $script:soundPlayer.Play()
+        } else {
+            [System.Media.SystemSounds]::Asterisk.Play()
+        }
+    }
+})
 
 $heading = New-Object System.Windows.Forms.Label
 $heading.Text = 'GPT NEEDS YOU  ·  확인이 필요해요'
@@ -128,6 +134,16 @@ $mute.Add_Click({
     Set-Content -NoNewline -Encoding ascii -Path $soundPreferenceFile -Value $(if ($script:soundEnabled) { 'on' } else { 'off' })
 })
 $form.Controls.Add($mute)
+
+$pause = New-Object System.Windows.Forms.Button
+$pause.Text = '24시간 중지'
+$pause.Location = [System.Drawing.Point]::new(145, 176)
+$pause.Size = [System.Drawing.Size]::new(150, 30)
+$pause.Add_Click({
+    [DateTime]::UtcNow.AddHours(24).ToString('o') | Set-Content -Encoding utf8 -LiteralPath $pauseUntilPreferenceFile
+    $form.Close()
+})
+$form.Controls.Add($pause)
 
 if ($chatUrlValid) {
     $open = New-Object System.Windows.Forms.Button

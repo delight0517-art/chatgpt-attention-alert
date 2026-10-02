@@ -6,6 +6,7 @@ config="$HOME/.config/chatgpt-attention-alert"
 pref="$config/sound"
 custom_sound_pref="$config/sound-file"
 stack_index="$config/stack-index"
+pause_until="$config/pause-until"
 mkdir -p "$config"
 
 if [[ "${1:-}" == "--sound" ]]; then
@@ -36,6 +37,11 @@ if [[ "${1:-}" == "--sound-file" ]]; then
   exit 0
 fi
 
+if [[ -r "$pause_until" ]]; then
+  paused_until=$(<"$pause_until")
+  if [[ "$paused_until" == <-> && "$paused_until" -gt "$(/bin/date +%s)" ]]; then exit 0; fi
+fi
+
 title=${1:-}
 message=${2:-"Please check this chat."}
 chat_url=${3:-}
@@ -48,22 +54,12 @@ if [[ -z "$title" ]]; then
 fi
 if [[ "$sound" == "on" ]]; then
   if [[ "$chat_url" == https://chatgpt.com/* || "$chat_url" == https://chat.openai.com/* ]]; then
-    /usr/bin/open "$chat_url"
+    :
   else
     sound=off
   fi
 fi
 
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" >/dev/null 2>&1 </dev/null &!
-if [[ "$sound" == "on" ]]; then
-  custom_sound=""
-  if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
-  if [[ -n "$custom_sound" && -f "$custom_sound" ]] && /usr/bin/afplay "$custom_sound" >/dev/null 2>&1; then
-    :
-  else
-    for _ in 1 2 3; do
-      /usr/bin/afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 || true
-      /bin/sleep 0.25
-    done
-  fi
-fi
+custom_sound=""
+if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" >/dev/null 2>&1 </dev/null &!

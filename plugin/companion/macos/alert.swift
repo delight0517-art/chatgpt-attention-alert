@@ -7,6 +7,8 @@ let actionText = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "P
 let chatURL = CommandLine.arguments.count > 3 ? CommandLine.arguments[3] : ""
 let preferencePath = CommandLine.arguments.count > 5 ? CommandLine.arguments[5] : ""
 let stackPath = CommandLine.arguments.count > 6 ? CommandLine.arguments[6] : ""
+let customSoundPath = CommandLine.arguments.count > 7 ? CommandLine.arguments[7] : ""
+let pauseUntilPath = CommandLine.arguments.count > 8 ? CommandLine.arguments[8] : ""
 var soundEnabled = CommandLine.arguments.count <= 4 || CommandLine.arguments[4] != "off"
 let canOpenChat: Bool = {
     guard let components = URLComponents(string: chatURL),
@@ -16,7 +18,16 @@ let canOpenChat: Bool = {
 }()
 
 final class AlertActions: NSObject, NSGestureRecognizerDelegate {
+    let pauseUntilPath: String
+    init(pauseUntilPath: String) { self.pauseUntilPath = pauseUntilPath }
+
     @objc func acknowledge(_ sender: Any?) {
+        NSApp.terminate(nil)
+    }
+
+    @objc func pauseForDay(_ sender: Any?) {
+        let expiry = Int(Date().timeIntervalSince1970 + 24 * 60 * 60)
+        try? "\(expiry)\n".write(toFile: pauseUntilPath, atomically: true, encoding: .utf8)
         NSApp.terminate(nil)
     }
 
@@ -31,6 +42,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     @objc func openChat(_ sender: Any?) {
         guard canOpenChat, let url = URL(string: chatURL) else { return }
         NSWorkspace.shared.open(url)
+        NSApp.terminate(nil)
     }
 
     @objc func openChatFromCard(_ sender: Any?) {
@@ -93,11 +105,16 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
+let actions = AlertActions(pauseUntilPath: pauseUntilPath)
 let heading = NSTextField(labelWithString: "GPT NEEDS YOU  ·  확인이 필요해요")
-heading.frame = NSRect(x: 22, y: 184, width: 470, height: 20)
+heading.frame = NSRect(x: 22, y: 184, width: 430, height: 20)
 heading.font = .systemFont(ofSize: 13, weight: .bold)
 heading.textColor = NSColor(calibratedRed: 0.38, green: 0.92, blue: 1, alpha: 1)
 card.addSubview(heading)
+let closeButton = NSButton(title: "×", target: actions, action: #selector(AlertActions.acknowledge(_:)))
+closeButton.frame = NSRect(x: 474, y: 180, width: 28, height: 28)
+closeButton.bezelStyle = .rounded
+card.addSubview(closeButton)
 
 let title = NSTextField(wrappingLabelWithString: chatTitle)
 title.frame = NSRect(x: 22, y: 142, width: 470, height: 38)
@@ -113,7 +130,6 @@ action.textColor = NSColor(calibratedWhite: 0.88, alpha: 1)
 action.maximumNumberOfLines = 3
 card.addSubview(action)
 
-let actions = AlertActions()
 let cardClick = NSClickGestureRecognizer(target: actions, action: #selector(AlertActions.openChatFromCard(_:)))
 cardClick.delegate = actions
 card.addGestureRecognizer(cardClick)
@@ -121,6 +137,10 @@ let sound = NSButton(title: soundEnabled ? "소리 끄기" : "소리 켜기", ta
 sound.frame = NSRect(x: 20, y: 16, width: 104, height: 28)
 sound.bezelStyle = .rounded
 card.addSubview(sound)
+let pause = NSButton(title: "24시간 중지", target: actions, action: #selector(AlertActions.pauseForDay(_:)))
+pause.frame = NSRect(x: 136, y: 16, width: 140, height: 28)
+pause.bezelStyle = .rounded
+card.addSubview(pause)
 
 if canOpenChat {
     let open = NSButton(title: "채팅 열기", target: actions, action: #selector(AlertActions.openChat(_:)))
@@ -135,4 +155,15 @@ done.bezelStyle = .rounded
 card.addSubview(done)
 
 window.orderFrontRegardless()
+if soundEnabled {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+        let chosenSound = !customSoundPath.isEmpty && FileManager.default.fileExists(atPath: customSoundPath)
+            ? customSoundPath
+            : "/System/Library/Sounds/Sosumi.aiff"
+        let player = Process()
+        player.executableURL = URL(fileURLWithPath: "/usr/bin/afplay")
+        player.arguments = [chosenSound]
+        try? player.run()
+    }
+}
 app.run()
