@@ -28,6 +28,8 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Adds a **24시간 중지** button that suppresses new alerts for 24 hours.
 - Lets the user toggle sound from the card or command line.
 - Lets the user choose a custom `.wav` alert sound on macOS and Windows, or restore the system sound.
+- Can show at most one small developer-service recommendation per calendar month when an alert title/action matches a listed topic. Authentication and sensitive-code alerts are excluded.
+- Recommendation matching uses local keyword rules on the alert title and action. It makes no AI/model request, spends zero AI tokens on recommendations, and does not save or send the alert text. The card discloses this in small text; use `--recommendations off` on macOS or `-Recommendations off` on Windows to disable it.
 - Offers an **Open chat** button only when a chat URL is provided.
 - Runs locally and sends no alert content to a server.
 
@@ -75,7 +77,11 @@ Try it:
 ~/.local/bin/chatgpt-attention-alert --sound toggle
 ~/.local/bin/chatgpt-attention-alert --sound-file /path/to/alert.wav
 ~/.local/bin/chatgpt-attention-alert --sound-file default
+~/.local/bin/chatgpt-attention-alert --recommendations off
+~/.local/bin/chatgpt-attention-alert --auth "GitHub" "delight0517" "Current chat" "Complete sign-in" "https://chatgpt.com/c/..."
 ```
+
+For another provider, replace `GitHub` and the account with the exact service and account. Windows accepts `-AuthService "<service>" -AuthAccount "<account>"` with its normal alert parameters. Keep passwords and verification codes out of the alert.
 
 ### Windows
 
@@ -95,6 +101,7 @@ Try it:
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Sound toggle
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -SetSoundFile "C:\Sounds\alert.wav"
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -SetSoundFile default
+& "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Recommendations off
 ```
 
 Use an existing `.wav` file. The process-scoped execution policy does not change the machine's persistent PowerShell policy.

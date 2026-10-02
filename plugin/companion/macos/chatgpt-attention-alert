@@ -7,7 +7,31 @@ pref="$config/sound"
 custom_sound_pref="$config/sound-file"
 stack_index="$config/stack-index"
 pause_until="$config/pause-until"
+recommendations_pref="$config/recommendations"
+recommendation_state="$config/recommendation-state"
 mkdir -p "$config"
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'USAGE'
+Usage:
+  chatgpt-attention-alert [--auth <service> <account>] <chat-title> <message> [chat-url]
+  chatgpt-attention-alert --sound on|off|toggle
+  chatgpt-attention-alert --sound-file <file.wav|default>
+  chatgpt-attention-alert --recommendations on|off
+USAGE
+  exit 0
+fi
+
+if [[ "${1:-}" == "--recommendations" ]]; then
+  case "${2:-}" in
+    on|off)
+      print -r -- "$2" > "$recommendations_pref"
+      [[ "$2" == "on" ]] || rm -f "$recommendation_state"
+      ;;
+    *) print "Usage: chatgpt-attention-alert --recommendations on|off" >&2; exit 2 ;;
+  esac
+  exit 0
+fi
 
 if [[ "${1:-}" == "--sound" ]]; then
   case "${2:-}" in
@@ -37,6 +61,18 @@ if [[ "${1:-}" == "--sound-file" ]]; then
   exit 0
 fi
 
+auth_service=""
+auth_account=""
+if [[ "${1:-}" == "--auth" ]]; then
+  auth_service=${2:-}
+  auth_account=${3:-}
+  if [[ -z "$auth_service" || -z "$auth_account" ]]; then
+    print 'Usage: chatgpt-attention-alert --auth <service> <account> <chat-title> <message> [chat-url]' >&2
+    exit 2
+  fi
+  shift 3
+fi
+
 if [[ -r "$pause_until" ]]; then
   paused_until=$(<"$pause_until")
   if [[ "$paused_until" == <-> && "$paused_until" -gt "$(/bin/date +%s)" ]]; then exit 0; fi
@@ -62,4 +98,7 @@ fi
 
 custom_sound=""
 if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" >/dev/null 2>&1 </dev/null &!
+recommendations=on
+if [[ -r "$recommendations_pref" ]]; then recommendations=$(<"$recommendations_pref"); fi
+[[ "$recommendations" == "off" ]] || recommendations=on
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" >/dev/null 2>&1 </dev/null &!

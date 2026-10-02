@@ -1,6 +1,6 @@
 {
   "name": "chatgpt-attention-alert",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Native, persistent user-attention alerts for local ChatGPT desktop and Codex workflows.",
   "skills": "./skills/"
 }
