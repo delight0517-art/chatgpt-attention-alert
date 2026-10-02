@@ -15,8 +15,15 @@ let authAccount = CommandLine.arguments.count > 10 ? CommandLine.arguments[10] :
 let recommendationsEnabled = CommandLine.arguments.count <= 11 || CommandLine.arguments[11] != "off"
 let recommendationStatePath = CommandLine.arguments.count > 12 ? CommandLine.arguments[12] : ""
 var soundEnabled = soundEnabledArg != "off"
-let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty
 var actionLabel: NSTextField?
+var authStatusLabel: NSTextField?
+var authLinkButton: NSButton?
+var reissueButton: NSButton?
+let loginURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13] : ""
+let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.arguments[14]) ?? 0 : 0
+let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
+let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !loginURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
+var authStatusIsActionResult = false
 
 struct LocalRecommendation {
     let title: String
@@ -89,17 +96,93 @@ let canOpenChat: Bool = {
           ["chatgpt.com", "chat.openai.com"].contains(components.host ?? "") else { return false }
     return true
 }()
+let loginURL: URL? = {
+    guard let components = URLComponents(string: loginURLValue),
+          components.scheme == "https", components.host != nil,
+          components.user == nil, components.password == nil else { return nil }
+    return components.url
+}()
+let reissueAvailableAt = retryAfter > 0 ? retryAfter : linkExpiresAt
+let hasAuthControls = !loginURLValue.isEmpty || reissueAvailableAt > 0
+
+func refreshAuthControls() {
+    guard let authStatusLabel else { return }
+    guard !authStatusIsActionResult else { return }
+    let now = Date().timeIntervalSince1970
+    authLinkButton?.isEnabled = loginURL != nil && (linkExpiresAt == 0 || now < linkExpiresAt)
+    reissueButton?.isEnabled = reissueAvailableAt > 0 && now >= reissueAvailableAt
+    if !loginURLValue.isEmpty && loginURL == nil {
+        authStatusLabel.stringValue = "보안을 위해 HTTPS 로그인 주소만 열 수 있습니다."
+    } else if retryAfter > now {
+        let seconds = Int(retryAfter - now)
+        authStatusLabel.stringValue = "요청 제한 중 · 새 링크 요청까지 \(seconds / 60)분 \(seconds % 60)초"
+    } else if retryAfter > 0 && now >= retryAfter {
+        authStatusLabel.stringValue = "요청 제한 해제 · 새 인증 링크를 요청할 수 있어요."
+    } else if linkExpiresAt > 0 && now >= linkExpiresAt {
+        authStatusLabel.stringValue = "인증 링크 만료 · 새 링크 요청 가능"
+    } else if linkExpiresAt > now {
+        let seconds = Int(linkExpiresAt - now)
+        authStatusLabel.stringValue = "인증 링크 유효 · 만료까지 \(seconds / 60)분 \(seconds % 60)초"
+    } else if linkExpiresAt > 0 {
+        authStatusLabel.stringValue = "인증 링크가 만료되었습니다. 새 링크를 요청하세요."
+    } else {
+        authStatusLabel.stringValue = "인증 링크를 열고, 이 알림은 확인 전까지 남겨 두세요."
+    }
+}
 
 final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     let pauseUntilPath: String
     let recommendationURL: URL?
-    init(pauseUntilPath: String, recommendationURL: URL?) {
+    let loginURL: URL?
+    let linkExpiresAt: TimeInterval
+    let reissueAvailableAt: TimeInterval
+    let alertWindow: NSWindow
+    init(pauseUntilPath: String, recommendationURL: URL?, loginURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow) {
         self.pauseUntilPath = pauseUntilPath
         self.recommendationURL = recommendationURL
+        self.loginURL = loginURL
+        self.linkExpiresAt = linkExpiresAt
+        self.reissueAvailableAt = reissueAvailableAt
+        self.alertWindow = alertWindow
     }
 
     @objc func acknowledge(_ sender: Any?) {
         NSApp.terminate(nil)
+    }
+
+    @objc func bringAlertForward(_ sender: Any?) {
+        NSApp.activate(ignoringOtherApps: true)
+        alertWindow.level = .floating
+        alertWindow.makeKeyAndOrderFront(nil)
+        alertWindow.orderFrontRegardless()
+    }
+
+    @objc func openLoginLink(_ sender: Any?) {
+        guard let loginURL else { return }
+        guard linkExpiresAt == 0 || Date().timeIntervalSince1970 < linkExpiresAt else {
+            refreshAuthControls()
+            return
+        }
+        NSApp.windows.forEach { $0.level = .normal }
+        guard NSWorkspace.shared.open(loginURL) else {
+            authStatusLabel?.stringValue = "인증 페이지를 열지 못했습니다. 다시 눌러 주세요."
+            NSSound.beep()
+            return
+        }
+        authStatusLabel?.stringValue = "인증 페이지를 열었습니다. 이 알림은 계속 남아 있습니다."
+        authStatusIsActionResult = true
+    }
+
+    @objc func requestNewLoginLink(_ sender: Any?) {
+        guard reissueAvailableAt > 0, Date().timeIntervalSince1970 >= reissueAvailableAt else { return }
+        let service = authService.isEmpty ? "인증 서비스" : authService
+        let account = authAccount.isEmpty ? "계정 확인 필요" : authAccount
+        let message = "\(service) 계정 \(account)의 이전 인증 링크/코드가 만료되었거나 재요청 제한이 끝났습니다. 이전 값은 재사용하지 말고 새 인증 링크 또는 코드를 발급해 주세요."
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(message, forType: .string)
+        if canOpenChat, let url = URL(string: chatURL) { NSWorkspace.shared.open(url) }
+        authStatusLabel?.stringValue = "새 인증 요청 문구를 복사했습니다. 대화창에서 붙여넣어 전송하세요."
+        authStatusIsActionResult = true
     }
 
     @objc func pauseForDay(_ sender: Any?) {
@@ -122,12 +205,13 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
             NSSound.beep()
             return
         }
+        NSApp.windows.forEach { $0.level = .normal }
         guard NSWorkspace.shared.open(url) else {
             actionLabel?.stringValue = "채팅을 열지 못했습니다. 다시 눌러 주세요."
             NSSound.beep()
             return
         }
-        NSApp.terminate(nil)
+        actionLabel?.stringValue = "대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다."
     }
 
     @objc func openRecommendation(_ sender: Any?) {
@@ -147,7 +231,8 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
-let size = NSSize(width: 520, height: (hasAuthContext || recommendation != nil) ? 252 : 220)
+let expandedAuthCard = hasAuthControls
+let size = NSSize(width: 520, height: expandedAuthCard ? 322 : (hasAuthContext || recommendation != nil) ? 252 : 220)
 let window = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
 window.title = "ChatGPT Attention Alert"
 window.hidesOnDeactivate = false
@@ -197,7 +282,18 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
-let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url)
+let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, loginURL: loginURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window)
+let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+statusItem.button?.title = "GPT"
+let statusMenu = NSMenu()
+let showAlertItem = NSMenuItem(title: "GPT 알리미 열어줘", action: #selector(AlertActions.bringAlertForward(_:)), keyEquivalent: "")
+showAlertItem.target = actions
+statusMenu.addItem(showAlertItem)
+statusMenu.addItem(.separator())
+let dismissAlertItem = NSMenuItem(title: "확인하고 닫기", action: #selector(AlertActions.acknowledge(_:)), keyEquivalent: "")
+dismissAlertItem.target = actions
+statusMenu.addItem(dismissAlertItem)
+statusItem.menu = statusMenu
 let heading = NSTextField(labelWithString: "GPT NEEDS YOU  ·  확인이 필요해요")
 heading.frame = NSRect(x: 54, y: size.height - 36, width: 410, height: 20)
 heading.font = .systemFont(ofSize: 13, weight: .bold)
@@ -209,7 +305,7 @@ closeButton.bezelStyle = .rounded
 card.addSubview(closeButton)
 
 let title = NSTextField(wrappingLabelWithString: chatTitle)
-title.frame = NSRect(x: 22, y: (hasAuthContext || recommendation != nil) ? 174 : 142, width: 470, height: 38)
+title.frame = NSRect(x: 22, y: expandedAuthCard ? 244 : (hasAuthContext || recommendation != nil) ? 174 : 142, width: 470, height: 38)
 title.font = .systemFont(ofSize: 21, weight: .semibold)
 title.textColor = .white
 title.maximumNumberOfLines = 2
@@ -219,14 +315,14 @@ if hasAuthContext {
     let service = authService.isEmpty ? "인증 서비스 확인 필요" : authService
     let account = authAccount.isEmpty ? "계정 확인 필요" : authAccount
     let identity = NSTextField(labelWithString: "인증 대상  ·  \(service)  ·  \(account)")
-    identity.frame = NSRect(x: 22, y: 144, width: 470, height: 18)
+    identity.frame = NSRect(x: 22, y: expandedAuthCard ? 214 : 144, width: 470, height: 18)
     identity.font = .systemFont(ofSize: 13)
     identity.textColor = NSColor(calibratedRed: 0.65, green: 0.83, blue: 0.9, alpha: 1)
     card.addSubview(identity)
 }
 
 let action = NSTextField(wrappingLabelWithString: actionText)
-action.frame = NSRect(x: 22, y: recommendation == nil ? 58 : 78, width: 468, height: recommendation == nil ? 70 : 50)
+action.frame = NSRect(x: 22, y: expandedAuthCard ? 130 : recommendation == nil ? 58 : 78, width: 468, height: expandedAuthCard ? 66 : recommendation == nil ? 70 : 50)
 action.font = .systemFont(ofSize: 15)
 action.textColor = NSColor(calibratedWhite: 0.88, alpha: 1)
 action.maximumNumberOfLines = 3
@@ -247,6 +343,33 @@ if let recommendation {
     note.font = .systemFont(ofSize: 8)
     note.textColor = NSColor(calibratedWhite: 0.68, alpha: 1)
     card.addSubview(note)
+}
+
+if expandedAuthCard {
+    let status = NSTextField(labelWithString: "")
+    status.frame = NSRect(x: 22, y: 96, width: 476, height: 18)
+    status.font = .systemFont(ofSize: 11, weight: .medium)
+    status.textColor = NSColor(calibratedRed: 0.55, green: 0.9, blue: 0.76, alpha: 1)
+    card.addSubview(status)
+    authStatusLabel = status
+    if loginURL != nil {
+        let openLink = NSButton(title: "로그인 링크 열기", target: actions, action: #selector(AlertActions.openLoginLink(_:)))
+        openLink.frame = NSRect(x: 22, y: 54, width: 220, height: 30)
+        openLink.bezelStyle = .rounded
+        card.addSubview(openLink)
+        authLinkButton = openLink
+    }
+    if reissueAvailableAt > 0 {
+        let reissue = NSButton(title: "새 인증 링크 요청", target: actions, action: #selector(AlertActions.requestNewLoginLink(_:)))
+        reissue.frame = NSRect(x: 258, y: 54, width: 240, height: 30)
+        reissue.bezelStyle = .rounded
+        card.addSubview(reissue)
+        reissueButton = reissue
+    }
+    refreshAuthControls()
+    if reissueAvailableAt > 0 {
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in refreshAuthControls() }
+    }
 }
 
 let cardClick = NSClickGestureRecognizer(target: actions, action: #selector(AlertActions.openChatFromCard(_:)))

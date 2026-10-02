@@ -20,9 +20,11 @@ When this local desktop task cannot continue until the user responds or acts, sh
 For a sign-in, OAuth, MFA, device verification, or access-approval step, identify the service and the exact account before raising the alert. Keep authentication codes, passwords, and recovery secrets out of the alert. If the account is not confirmed, display `계정 확인 필요` rather than guessing.
 
 - macOS: put `--auth "<service>" "<account>"` before the usual title, message, and URL arguments.
-- Windows: add `-AuthService "<service>" -AuthAccount "<account>"` to the usual parameters.
+- If the provider gives a safe HTTPS sign-in/device page, pass it before the title/message arguments with macOS `--login-url "<https-url>"` or Windows `-LoginUrl "<https-url>"`. Never include a password, OTP, device code, access token, or other credential in the URL or alert.
+- When the provider supplies a link-expiry time or rate-limit reset time, pass its Unix timestamp in seconds with macOS `--expires-at <timestamp>` and/or `--retry-after <timestamp>`, or Windows `-ExpiresAt <timestamp>` and/or `-RetryAfter <timestamp>`. The alert keeps the link available until expiry, then enables the reissue action when allowed.
+- The reissue action copies a safe request for a fresh link/code and opens the supplied chat. The user must paste and send it; never claim that clicking the local button sent a message automatically.
 
-The card displays the service and account together with the requested user action. Provider-specific authentication steps still follow that provider's own workflow; the alert only identifies where and for which account the user needs to act.
+The card displays the service and account together with the requested user action. Its login button opens the provider page in the foreground and leaves the alert available until acknowledged. If another window covers the alert, use the macOS menu-bar **GPT** menu or the Windows notification-area icon's **GPT 알리미 열어줘** item to restore it. Only show a reissue action when the provider supplied an expiry or rate-limit reset timestamp; the helper cannot query provider state itself. Provider-specific authentication steps still follow that provider's own workflow; the alert only identifies where and for which account the user needs to act.
 
 ## Monthly local recommendation
 

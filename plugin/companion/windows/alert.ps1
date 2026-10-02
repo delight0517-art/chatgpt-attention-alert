@@ -4,6 +4,11 @@
     [string]$ChatUrl = '',
     [string]$AuthService = '',
     [string]$AuthAccount = '',
+    [string]$LoginUrl = '',
+    [ValidateRange(0, 4102444800)]
+    [long]$ExpiresAt = 0,
+    [ValidateRange(0, 4102444800)]
+    [long]$RetryAfter = 0,
     [string]$SetSoundFile = '',
     [ValidateSet('show', 'on', 'off')]
     [string]$Recommendations = 'show',
@@ -62,7 +67,7 @@ $script:soundEnabled = if (Test-Path $soundPreferenceFile) { (Get-Content -Raw $
 $script:customSoundPath = if (Test-Path -LiteralPath $customSoundPreferenceFile) { (Get-Content -Raw $customSoundPreferenceFile).Trim() } else { '' }
 $script:recommendation = $null
 $recommendationsEnabled = -not (Test-Path -LiteralPath $recommendationsPreferenceFile) -or (Get-Content -Raw $recommendationsPreferenceFile).Trim() -ne 'off'
-$hasAuthContext = -not [string]::IsNullOrWhiteSpace($AuthService) -or -not [string]::IsNullOrWhiteSpace($AuthAccount)
+$hasAuthContext = -not [string]::IsNullOrWhiteSpace($AuthService) -or -not [string]::IsNullOrWhiteSpace($AuthAccount) -or -not [string]::IsNullOrWhiteSpace($LoginUrl) -or $ExpiresAt -gt 0 -or $RetryAfter -gt 0
 if ($recommendationsEnabled -and -not $hasAuthContext) {
     $context = "$Title`n$Message".ToLowerInvariant()
     $sensitivePattern = 'password|passkey|\botp\b|one-time code|verification code|api key|access token|secret|oauth|mfa|sign-in|login|authentication|비밀번호|인증|로그인|인증 코드|인증번호|일회용 코드|패스키|액세스 토큰'
@@ -119,6 +124,47 @@ if (-not [string]::IsNullOrWhiteSpace($ChatUrl)) {
     $parsedChatUrl = $null
     $chatUrlValid = [System.Uri]::TryCreate($ChatUrl, [System.UriKind]::Absolute, [ref]$parsedChatUrl) -and $parsedChatUrl.Scheme -eq 'https' -and $parsedChatUrl.Host -in @('chatgpt.com', 'chat.openai.com')
 }
+$loginUrlValid = $false
+if (-not [string]::IsNullOrWhiteSpace($LoginUrl)) {
+    $parsedLoginUrl = $null
+    $loginUrlValid = [System.Uri]::TryCreate($LoginUrl, [System.UriKind]::Absolute, [ref]$parsedLoginUrl) -and $parsedLoginUrl.Scheme -eq 'https' -and -not $parsedLoginUrl.UserInfo
+}
+$reissueAvailableAt = if ($RetryAfter -gt 0) { $RetryAfter } else { $ExpiresAt }
+$hasAuthControls = -not [string]::IsNullOrWhiteSpace($LoginUrl) -or $reissueAvailableAt -gt 0
+$script:authExpiresAt = $ExpiresAt
+$script:authRetryAfter = $RetryAfter
+$script:authReissueAvailableAt = $reissueAvailableAt
+$script:loginButton = $null
+$script:reissueButton = $null
+$script:authStatusPinned = $false
+
+function Update-AuthControls {
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    if ($script:loginButton) {
+        $script:loginButton.Enabled = $loginUrlValid -and ($script:authExpiresAt -eq 0 -or $now -lt $script:authExpiresAt)
+    }
+    if ($script:reissueButton) {
+        $script:reissueButton.Enabled = $now -ge $script:authReissueAvailableAt
+    }
+    if ($script:authStatusPinned) { return }
+    if (-not [string]::IsNullOrWhiteSpace($LoginUrl) -and -not $loginUrlValid) {
+        $script:authStatus.Text = '보안을 위해 HTTPS 로그인 주소만 열 수 있습니다.'
+    } elseif ($script:authRetryAfter -gt $now) {
+        $remaining = [int]($script:authRetryAfter - $now)
+        $script:authStatus.Text = "요청 제한 중 · 새 링크 요청까지 $([int]($remaining / 60))분 $($remaining % 60)초"
+    } elseif ($script:authRetryAfter -gt 0 -and $now -ge $script:authRetryAfter) {
+        $script:authStatus.Text = '요청 제한 해제 · 새 인증 링크를 요청할 수 있어요.'
+    } elseif ($script:authExpiresAt -gt 0 -and $now -ge $script:authExpiresAt) {
+        $script:authStatus.Text = '인증 링크 만료 · 새 링크 요청 가능'
+    } elseif ($script:authExpiresAt -gt $now) {
+        $remaining = [int]($script:authExpiresAt - $now)
+        $script:authStatus.Text = "인증 링크 유효 · 만료까지 $([int]($remaining / 60))분 $($remaining % 60)초"
+    } elseif ($script:authExpiresAt -gt 0) {
+        $script:authStatus.Text = '인증 링크가 만료되었습니다. 새 링크를 요청하세요.'
+    } else {
+        $script:authStatus.Text = '인증 링크를 열고, 이 알림은 확인 전까지 남겨 두세요.'
+    }
+}
 if ([string]::IsNullOrWhiteSpace($Title)) {
     $Title = '채팅 제목을 확인할 수 없음'
     $script:soundEnabled = $false
@@ -129,7 +175,7 @@ if ($script:soundEnabled -and -not $chatUrlValid) {
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'ChatGPT Attention Alert'
-$form.Size = [System.Drawing.Size]::new(540, $(if ($script:recommendation) { 290 } elseif ($hasAuthContext) { 280 } else { 250 }))
+$form.Size = [System.Drawing.Size]::new(540, $(if ($hasAuthControls) { 360 } elseif ($script:recommendation) { 290 } elseif ($hasAuthContext) { 280 } else { 250 }))
 $form.StartPosition = 'Manual'
 $form.TopMost = $true
 $form.FormBorderStyle = 'FixedDialog'
@@ -138,7 +184,32 @@ $form.MinimizeBox = $false
 $form.ShowInTaskbar = $true
 $form.BackColor = [System.Drawing.Color]::FromArgb(14, 23, 36)
 $form.ForeColor = [System.Drawing.Color]::White
-$openChat = { if ($chatUrlValid) { Start-Process -FilePath $ChatUrl; $form.Close() } }
+$trayMenu = New-Object System.Windows.Forms.ContextMenuStrip
+$showAlertItem = $trayMenu.Items.Add('GPT 알리미 열어줘')
+$showAlertItem.Add_Click({
+    $form.Show()
+    $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+    $form.TopMost = $true
+    $form.Activate()
+    $form.BringToFront()
+})
+$closeAlertItem = $trayMenu.Items.Add('확인하고 닫기')
+$closeAlertItem.Add_Click({ $form.Close() })
+$trayIcon = New-Object System.Windows.Forms.NotifyIcon
+$trayIcon.Text = 'GPT 알리미 · 눌러서 다시 열기'
+$trayIcon.Icon = [System.Drawing.SystemIcons]::Information
+$trayIcon.ContextMenuStrip = $trayMenu
+$trayIcon.Visible = $true
+$trayIcon.Add_DoubleClick({
+    $form.Show()
+    $form.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+    $form.TopMost = $true
+    $form.Activate()
+    $form.BringToFront()
+})
+$form.Add_FormClosed({ $trayIcon.Visible = $false; $trayIcon.Dispose(); $trayMenu.Dispose() })
+$script:authStatus = $null
+$openChat = { if ($chatUrlValid) { $form.TopMost = $false; Start-Process -FilePath $ChatUrl; if ($script:authStatus) { $script:authStatus.Text = '대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다.' } } }
 $form.Add_Click($openChat)
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $stackFile = Join-Path $configDir 'stack-index.txt'
@@ -185,7 +256,7 @@ $form.Controls.Add($chatTitle)
 $action = New-Object System.Windows.Forms.Label
 $action.Text = $Message
 $action.Font = New-Object System.Drawing.Font('Segoe UI', 10)
-$action.Location = [System.Drawing.Point]::new(20, $(if ($hasAuthContext) { 126 } else { 98 }))
+$action.Location = [System.Drawing.Point]::new(20, $(if ($hasAuthControls) { 126 } elseif ($hasAuthContext) { 126 } else { 98 }))
 $action.Size = [System.Drawing.Size]::new(490, 66)
 $action.Add_Click($openChat)
 $form.Controls.Add($action)
@@ -222,7 +293,55 @@ if ($script:recommendation) {
     $form.Controls.Add($recommendationNote)
 }
 
-$bottom = if ($script:recommendation) { 216 } elseif ($hasAuthContext) { 206 } else { 176 }
+$bottom = if ($hasAuthControls) { 270 } elseif ($script:recommendation) { 216 } elseif ($hasAuthContext) { 206 } else { 176 }
+
+if ($hasAuthControls) {
+    $script:authStatus = New-Object System.Windows.Forms.Label
+    $script:authStatus.Location = [System.Drawing.Point]::new(20, 198)
+    $script:authStatus.Size = [System.Drawing.Size]::new(490, 18)
+    $script:authStatus.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+    $script:authStatus.ForeColor = [System.Drawing.Color]::FromArgb(140, 227, 194)
+    $form.Controls.Add($script:authStatus)
+
+    if ($loginUrlValid) {
+        $loginButton = New-Object System.Windows.Forms.Button
+        $loginButton.Text = '로그인 링크 열기'
+        $loginButton.Location = [System.Drawing.Point]::new(20, 222)
+        $loginButton.Size = [System.Drawing.Size]::new(225, 30)
+        $loginButton.Add_Click({
+            $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+            if ($script:authExpiresAt -gt 0 -and $now -ge $script:authExpiresAt) { Update-AuthControls; return }
+            $form.TopMost = $false
+            Start-Process -FilePath $LoginUrl
+            $script:authStatus.Text = '인증 페이지를 브라우저 앞으로 열었습니다. 이 알림은 유지됩니다.'
+            $script:authStatusPinned = $true
+        })
+        $form.Controls.Add($loginButton)
+        $script:loginButton = $loginButton
+    }
+    if ($reissueAvailableAt -gt 0) {
+        $reissueButton = New-Object System.Windows.Forms.Button
+        $reissueButton.Text = '새 인증 링크 요청'
+        $reissueButton.Location = [System.Drawing.Point]::new(260, 222)
+        $reissueButton.Size = [System.Drawing.Size]::new(250, 30)
+        $reissueButton.Add_Click({
+            if ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() -lt $script:authReissueAvailableAt) { return }
+            $serviceName = if ($AuthService) { $AuthService } else { '인증 서비스' }
+            $accountName = if ($AuthAccount) { $AuthAccount } else { '계정 확인 필요' }
+            Set-Clipboard "$serviceName 계정 $accountName의 이전 인증 링크/코드가 만료되었거나 재요청 제한이 끝났습니다. 이전 값은 재사용하지 말고 새 인증 링크 또는 코드를 발급해 주세요."
+            $form.TopMost = $false
+            if ($chatUrlValid) { Start-Process -FilePath $ChatUrl }
+            $script:authStatus.Text = '새 인증 요청 문구를 복사했습니다. 대화창에서 붙여넣어 전송하세요.'
+            $script:authStatusPinned = $true
+        })
+        $form.Controls.Add($reissueButton)
+        $script:reissueButton = $reissueButton
+    }
+    $authTimer = New-Object System.Windows.Forms.Timer
+    $authTimer.Interval = 1000
+    $authTimer.Add_Tick({ Update-AuthControls })
+    $authTimer.Start()
+}
 
 $mute = New-Object System.Windows.Forms.Button
 $mute.Text = if ($script:soundEnabled) { '소리 끄기' } else { '소리 켜기' }
