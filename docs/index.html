@@ -3,14 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ChatGPT Attention Alert — 채팅 이름이 보이는 데스크톱 알림</title>
-  <meta name="description" content="Free, open-source ChatGPT and Codex desktop alert companion for macOS and Windows. See which chat needs attention and download the latest release.">
+  <title>GPT 알림, 확인할 대화와 요청을 놓치지 않게 · ChatGPT Attention Alert</title>
+  <meta name="description" content="사용자 확인을 기다리는 ChatGPT·Codex 작업의 대화 제목과 요청을 macOS·Windows 알림 카드에 표시합니다. 카드에서 해당 대화로 돌아가세요.">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="https://delight0517-art.github.io/chatgpt-attention-alert/">
-  <meta property="og:title" content="ChatGPT Attention Alert">
-  <meta property="og:description" content="See which ChatGPT or Codex chat needs attention. Free, open-source desktop companion for macOS and Windows.">
+  <meta property="og:title" content="확인이 필요한 ChatGPT 대화를 놓치지 않게">
+  <meta property="og:description" content="대화 제목과 해야 할 일을 확인할 때까지 보여주는 macOS·Windows 데스크톱 알림 도우미입니다.">
+  <meta property="og:image" content="https://delight0517-art.github.io/chatgpt-attention-alert/assets/preview-kr-a.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+  <meta property="og:image:alt" content="GPT 확인 요청과 해야 할 일을 보여주는 한국어 알림 카드">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://delight0517-art.github.io/chatgpt-attention-alert/">
+  <meta name="twitter:card" content="summary_large_image">
   <style>
     :root { color-scheme: dark; --bg:#0b1020; --panel:#121a2d; --ink:#eef3ff; --muted:#aab6cc; --accent:#83e6c0; --line:#283550; }
     * { box-sizing:border-box }
@@ -21,6 +26,12 @@
     h2 { margin-top:2.3rem; font-size:1.45rem }
     p,li { color:var(--muted) }
     .lead { max-width:720px; font-size:1.2rem }
+    .hero { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:30px; margin:20px 0 24px }
+    .hero-copy { min-width:0 }
+    .hero h1 { margin:.5rem 0 1rem }
+    .hero-preview { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:16px; box-shadow:0 22px 55px #0005 }
+    .market-links { margin:16px 0 38px; display:flex; flex-wrap:wrap; gap:12px }
+    .market-links a { padding:9px 12px; border:1px solid var(--line); border-radius:9px; text-decoration:none }
     .actions { display:flex; flex-wrap:wrap; gap:12px; margin:26px 0 38px }
     a.button { display:inline-block; padding:11px 17px; border-radius:10px; background:var(--accent); color:#07150f; text-decoration:none; font-weight:750 }
     a.secondary { background:transparent; color:var(--ink); border:1px solid var(--line) }
@@ -29,21 +40,40 @@
     article h3 { margin:.1rem 0 .55rem }
     code { color:#d4f7e9; background:#17223a; padding:.12em .35em; border-radius:5px }
     a { color:var(--accent) }
+    #analytics-consent { position:fixed; z-index:20; left:16px; right:16px; bottom:16px; max-width:840px; margin:auto; padding:12px 16px; display:flex; align-items:center; gap:16px; background:#111a2ceb; border:1px solid #8fdcc7; border-radius:14px; box-shadow:0 12px 36px #0009; backdrop-filter:blur(12px) }
+    #analytics-consent[hidden] { display:none }
+    #analytics-consent p { margin:0; flex:1; color:#e1e8f4; font-size:.82rem; line-height:1.5 }
+    #analytics-consent a { color:#a4f1d7 }
+    #analytics-consent div { display:flex; gap:8px; flex-shrink:0 }
+    #analytics-consent button { min-width:68px; padding:8px 12px; border-radius:8px; border:1px solid #8fdcc7; background:transparent; color:#effff9; cursor:pointer }
+    #analytics-consent button[data-choice="yes"] { background:#83e6c0; color:#07150f; font-weight:700 }
+    .privacy-control { background:none; border:0; color:inherit; text-decoration:underline; cursor:pointer; font:inherit }
     footer { margin-top:40px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:.9rem }
     @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto } }
+    @media (max-width:700px) { .hero { grid-template-columns:1fr; gap:14px } .hero-preview { max-width:600px } #analytics-consent { align-items:flex-start; flex-direction:column } }
   </style>
 </head>
 <body>
 <main>
-  <span class="tag">Open source · MIT · macOS + Windows</span>
-  <h1>ChatGPT<br>Attention Alert</h1>
-  <p class="lead">알림 소리만 울리고 어느 채팅인지 놓치는 일을 줄이기 위한 데스크톱 도우미입니다. 알림 카드에 채팅 제목과 해야 할 일을 표시하고, 사용자가 확인할 때까지 화면에 남깁니다.</p>
-  <div class="actions">
-    <a class="button" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest" aria-label="Download the latest macOS and Windows package">macOS · Windows 최신 ZIP 다운로드</a>
-    <a class="button secondary" href="https://github.com/delight0517-art/chatgpt-attention-alert">GitHub 소스와 설치 안내</a>
+  <div class="hero">
+    <div class="hero-copy">
+      <span class="tag">Open source · MIT · macOS + Windows</span>
+      <h1 id="hero-title">확인이 필요한<br>대화를 놓치지 않게</h1>
+      <p class="lead">ChatGPT·Codex 작업이 사용자의 확인을 기다릴 때, 대화 제목과 해야 할 일을 화면에 남는 카드로 보여줍니다. 카드에서 해당 대화로 돌아갈 수 있습니다.</p>
+      <div class="actions">
+        <a class="button" data-market-event="release_click" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest" aria-label="Download the latest macOS and Windows package">macOS · Windows 최신 ZIP 다운로드</a>
+        <a class="button secondary" data-market-event="readme_click" href="https://github.com/delight0517-art/chatgpt-attention-alert">GitHub 소스와 설치 안내</a>
+      </div>
+    </div>
+    <img id="hero-thumbnail" class="hero-preview" src="assets/preview-kr-a.png" width="1200" height="675" alt="GPT 확인 요청과 해야 할 일을 보여주는 한국어 알림 카드">
   </div>
-  <h2>동작 원칙</h2>
-  <div class="grid">
+  <h2>어떤 상황에 쓰나요?</h2>
+  <div class="market-links">
+    <a data-market-event="intent_click" href="ko/persistent-alerts/">입력 중에도 남는 알림</a>
+    <a data-market-event="intent_click" href="ko/auth-context/">인증 서비스와 계정 표시</a>
+  </div>
+  <h2 id="features">동작 원칙</h2>
+  <div class="grid" data-market-section="features">
     <article><h3>채팅으로 바로 이동</h3><p>유효한 ChatGPT 대화 URL이 전달되면 알림 카드의 제목·본문·빈 영역을 눌러 해당 채팅으로 이동할 수 있습니다. 소리와 확인 버튼은 각각 원래 동작을 유지합니다.</p></article>
     <article><h3>제목과 요청을 계속 표시</h3><p>떠 있는 카드에 채팅 제목과 필요한 작업을 표시합니다. 사용자가 카드에서 확인하기 전까지 카드는 유지됩니다.</p></article>
     <article><h3>겹쳐 뜨는 알림도 순서대로</h3><p>카드는 불투명하게 표시되고, 연속 알림은 계단식으로 놓여 먼저 온 창도 확인할 수 있습니다.</p></article>
@@ -53,7 +83,7 @@
     <article><h3>소리 켜기·끄기</h3><p>카드 또는 명령줄에서 소리를 켜고 끌 수 있습니다. 소리가 꺼져 있어도 카드 알림은 표시됩니다.</p></article>
     <article><h3>원하는 알림음 사용</h3><p>macOS와 Windows에서 WAV 파일을 알림음으로 선택하고, 언제든 기본 시스템 소리로 되돌릴 수 있습니다.</p></article>
     <article><h3>월간 개발자 추천</h3><p>알림 제목과 요청에서 주제가 일치하면 한 달에 한 번 작은 서비스 추천을 표시합니다. 분류는 기기 안에서 처리하며 추천 AI 토큰을 쓰지 않습니다. 원문은 저장·전송하지 않고 주제와 날짜만 로컬에 기록합니다. 인증 관련 알림은 제외하며 기능을 끌 수 있습니다.</p></article>
-    <article><h3>로컬에서 실행</h3><p>알림 제목과 내용은 외부 서버로 보내지 않습니다. 공개 저장소의 코드를 직접 확인하고 수정할 수 있습니다.</p></article>
+    <article><h3>로컬에서 실행</h3><p>설치한 도우미는 알림 제목과 내용을 분석 서버로 보내지 않습니다. 공개 저장소의 코드를 확인하고 수정할 수 있습니다.</p></article>
   </div>
   <h2>설치</h2>
   <ol>
@@ -71,7 +101,8 @@
   <p><strong>Download the latest macOS and Windows ZIP:</strong> <a href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest">GitHub Releases</a>. Add the local plugin marketplace in ChatGPT desktop or Codex, install the plugin, then run <code>install-macos.sh</code> or <code>Install-Windows.ps1</code>. Copy the full platform-specific steps from the <a href="https://github.com/delight0517-art/chatgpt-attention-alert#readme">README</a>.</p>
   <p>Once a month, a small developer-service recommendation may appear when the alert topic matches. Matching happens locally without an AI request or recommendation tokens. Only topic labels and dates stay on the device; alert text is not saved or sent. Authentication alerts are excluded, and recommendations can be disabled.</p>
   <p>Both the plugin and the operating-system companion are required. Browser-only ChatGPT cannot display native desktop alerts. Alert content stays on your device.</p>
-  <footer>MIT License · <a href="https://github.com/delight0517-art/chatgpt-attention-alert">Source code, installation guide, and issue tracker</a></footer>
+  <footer>MIT License · <a href="https://github.com/delight0517-art/chatgpt-attention-alert">Source code, installation guide, and issue tracker</a> · <a href="privacy.html">개인정보·통계 안내</a> · <button class="privacy-control" type="button" data-analytics-settings>통계 설정</button></footer>
 </main>
+<script src="assets/market-analytics.js" defer></script>
 </body>
 </html>

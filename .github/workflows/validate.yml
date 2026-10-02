@@ -14,6 +14,11 @@ jobs:
         run: |
           swiftc -typecheck plugin/companion/macos/alert.swift
           zsh -n plugin/companion/macos/chatgpt-attention-alert
+      - name: Check analytics script and worker
+        run: |
+          node --check docs/assets/market-analytics.js
+          node analytics/worker/test.mjs
+          python3 -c 'import sqlite3; db=sqlite3.connect(":memory:"); db.executescript(open("analytics/worker/migrations/0001_marketing_event_daily.sql").read()); print("D1 schema SQL OK")'
 
   windows:
     runs-on: windows-latest

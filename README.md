@@ -33,6 +33,8 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Offers an **Open chat** button only when a chat URL is provided.
 - Runs locally and sends no alert content to a server.
 
+The public website has separate Korean landing pages for persistent alerts and authentication context. Its optional, consent-based research tracks only daily aggregate page and button counts by coarse Cloudflare country/first-level region, locale, broad device class, experiment variant, and allowlisted campaign label. It stores no IP address, account, exact query/referrer, browser ID, alert text, or installation result. Read [the privacy notice](https://delight0517-art.github.io/chatgpt-attention-alert/privacy.html) before opting in. The companion itself does not send alert content to this website analytics service.
+
 ## Requirements and limits
 
 - ChatGPT desktop or Codex desktop for the local plugin workflow.

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>개인정보 및 사이트 통계 안내 · ChatGPT Attention Alert</title>
+  <meta name="description" content="ChatGPT Attention Alert 웹사이트의 선택형 익명 통계 수집 항목과 거부 방법을 안내합니다.">
+  <link rel="canonical" href="https://delight0517-art.github.io/chatgpt-attention-alert/privacy.html">
+  <style>body{max-width:760px;margin:48px auto;padding:0 20px;font:16px/1.7 system-ui,sans-serif;color:#182238}h1,h2{line-height:1.25}a{color:#075d4d}button{font:inherit}#analytics-consent{position:fixed;z-index:20;left:16px;right:16px;bottom:16px;max-width:840px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:16px;background:#111a2c;color:#eff3fa;border:1px solid #3a7868;border-radius:14px;box-shadow:0 12px 36px #0005}#analytics-consent[hidden]{display:none}#analytics-consent p{margin:0;flex:1;color:inherit;font-size:.82rem;line-height:1.5}#analytics-consent a{color:#9be6cf}#analytics-consent div{display:flex;gap:8px;flex-shrink:0}#analytics-consent button{min-width:68px;padding:8px 12px;border-radius:8px;border:1px solid #8fdcc7;background:transparent;color:inherit;cursor:pointer}#analytics-consent button[data-choice="yes"]{background:#83e6c0;color:#07150f;font-weight:700}.privacy-control{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}</style>
+</head>
+<body>
+<main>
+  <h1>웹사이트 통계 및 개인정보 안내</h1>
+  <p>이 안내는 ChatGPT Attention Alert 다운로드 웹사이트에만 적용됩니다. 설치한 데스크톱 도우미는 알림 문구나 채팅 내용을 분석 서버로 보내지 않습니다.</p>
+  <h2>수집은 선택 사항입니다</h2>
+  <p>방문자는 처음에 사이트 개선용 통계 수집을 허용하거나 거부할 수 있습니다. 거부해도 페이지 이용과 다운로드는 그대로 가능합니다. 페이지 아래의 <strong>통계 설정</strong>에서 언제든 선택을 바꿀 수 있습니다. 브라우저의 Do Not Track 또는 Global Privacy Control 신호가 켜져 있으면 통계를 보내지 않습니다.</p>
+  <h2>허용할 때 기록되는 항목</h2>
+  <ul>
+    <li>국가 코드와 대도시보다 넓은 1단계 행정구역 코드(Cloudflare가 연결 정보를 바탕으로 제공)</li>
+    <li>웹사이트 언어, 대략적인 기기 종류, 정해진 페이지 이름</li>
+    <li>알림 카드 이미지 실험의 A/B 배정, 페이지 열기와 정해진 버튼 클릭 수</li>
+    <li>허용 목록에 든 유입 출처·방식·캠페인 이름</li>
+  </ul>
+  <p>Cloudflare Worker와 D1 데이터베이스에는 위 항목의 일별 합계만 기록합니다. IP 주소, 정확한 URL이나 검색어, 전체 브라우저 식별값, 이름·계정, 알림·채팅 문구, 입력한 인증 코드, 설치 완료 여부는 수집하지 않습니다. Cloudflare는 국가·지역을 제공하기 위해 네트워크 연결 정보를 처리할 수 있습니다.</p>
+  <p>동의 선택, 홈페이지 이미지 A/B 배정, 같은 브라우저에서 같은 날 같은 이벤트를 반복 전송하지 않게 하는 표시만 사이트 브라우저 저장소에 둡니다. 고유 방문자 ID는 만들지 않습니다. 사이트 데이터 삭제로 이 저장 항목을 지울 수 있고, 아래 설정에서 동의를 철회할 수 있습니다.</p>
+  <p>통계는 대략적인 동의한 브라우저 반응이며 사람 수, 설치 수, 매출을 뜻하지 않습니다. 집계 데이터는 실험 비교를 위해 보존하고, 표본이 적으면 국가·지역 세부 항목을 승자 판단에 쓰지 않습니다.</p>
+  <h2>관리 및 문의</h2>
+  <p>거부하거나 동의를 철회하면 새 통계 전송은 멈춥니다. 이미 데이터베이스에 더해진 일별 합계는 특정 방문자와 연결되지 않아 개별 행을 찾아 지울 수 없습니다. 소스 코드와 문의 경로는 <a href="https://github.com/delight0517-art/chatgpt-attention-alert">GitHub 저장소</a>에서 확인할 수 있습니다.</p>
+  <h2>English summary</h2>
+  <p>Website analytics is optional. If you agree, we send coarse country/first-level region, language, broad device class, page and button counts, and allowlisted campaign labels to Cloudflare for daily aggregation. The database does not store IP addresses, exact URLs or queries, browser IDs, account names, or alert/chat content. You can refuse or withdraw consent in the site analytics settings. DNT and Global Privacy Control signals disable collection.</p>
+  <p><a href="/chatgpt-attention-alert/">Back to the website</a> · <button class="privacy-control" type="button" data-analytics-settings>통계 설정</button></p>
+</main>
+<script src="/chatgpt-attention-alert/assets/market-analytics.js" defer></script>
+</body>
+</html>

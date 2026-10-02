@@ -1,0 +1,13 @@
+name = "chatgpt-attention-alert-market"
+main = "src/index.mjs"
+compatibility_date = "2026-10-02"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://delight0517-art.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "chatgpt-attention-alert-market"
+database_id = "f8c85177-bdf5-47ef-8b03-3e5093cd40d0"
+migrations_dir = "migrations"

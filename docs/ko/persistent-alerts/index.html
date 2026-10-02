@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>타이핑 중에도 남는 GPT 알림 카드 · ChatGPT Attention Alert</title>
+  <meta name="description" content="사용자 확인을 기다리는 ChatGPT·Codex 요청을 확인할 때까지 화면에 표시하세요. 알림 카드에서 해당 대화로 돌아갈 수 있는 macOS·Windows 도우미입니다.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://delight0517-art.github.io/chatgpt-attention-alert/ko/persistent-alerts/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://delight0517-art.github.io/chatgpt-attention-alert/ko/persistent-alerts/">
+  <meta property="og:title" content="타이핑 중에도 남는 GPT 알림 카드">
+  <meta property="og:description" content="해야 할 요청과 채팅 이름을 확인할 때까지 보여줍니다.">
+  <meta property="og:image" content="https://delight0517-art.github.io/chatgpt-attention-alert/assets/preview-kr-a.png">
+  <meta property="og:image:width" content="1200"><meta property="og:image:height" content="675">
+  <meta property="og:image:alt" content="잠깐 보이는 시스템 알림 옆에 계속 남아 있는 GPT 알림 카드">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2d;--ink:#eef3ff;--muted:#aab6cc;--accent:#83e6c0;--line:#283550}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#172845 0,transparent 42%),var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}main{width:min(920px,calc(100% - 36px));margin:0 auto;padding:48px 0}.tag{color:var(--accent);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.8rem}h1{font-size:clamp(2.1rem,6vw,3.7rem);line-height:1.13;letter-spacing:-.04em;margin:.7rem 0 1rem}h2{margin-top:2.2rem;font-size:1.4rem}p,li{color:var(--muted)}.lead{max-width:720px;font-size:1.18rem}.preview{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;margin:24px 0}.actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.button{display:inline-block;padding:11px 17px;border-radius:10px;background:var(--accent);color:#07150f;text-decoration:none;font-weight:750}.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}a{color:var(--accent)}footer{margin-top:38px;padding-top:18px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}#analytics-consent{position:fixed;z-index:20;left:16px;right:16px;bottom:16px;max-width:840px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:16px;background:#111a2ceb;border:1px solid #8fdcc7;border-radius:14px;box-shadow:0 12px 36px #0009;backdrop-filter:blur(12px)}#analytics-consent[hidden]{display:none}#analytics-consent p{margin:0;flex:1;color:#e1e8f4;font-size:.82rem;line-height:1.5}#analytics-consent a{color:#a4f1d7}#analytics-consent div{display:flex;gap:8px;flex-shrink:0}#analytics-consent button{min-width:68px;padding:8px 12px;border-radius:8px;border:1px solid #8fdcc7;background:transparent;color:#effff9;cursor:pointer}#analytics-consent button[data-choice="yes"]{background:#83e6c0;color:#07150f;font-weight:700}.privacy-control{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}@media(max-width:700px){#analytics-consent{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body><main>
+  <a href="/chatgpt-attention-alert/">← ChatGPT Attention Alert</a>
+  <p class="tag">macOS · Windows · 무료 오픈 소스</p>
+  <h1>타이핑 중에도 남는<br>GPT 요청 알림</h1>
+  <p class="lead">활성 ChatGPT·Codex 작업이 사용자의 확인을 기다릴 때, 알림 카드가 채팅 제목과 요청을 보여줍니다. 입력 중에도 사라지지 않고, 확인하거나 X를 누를 때까지 화면에 남습니다.</p>
+  <img class="preview" src="/chatgpt-attention-alert/assets/preview-kr-a.png" width="1200" height="675" alt="잠시 후 사라지는 배너와 화면에 남아 있는 GPT 알림 카드의 비교">
+  <div class="actions">
+    <a class="button" data-market-event="release_click" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest">무료 다운로드</a>
+    <a class="button secondary" data-market-event="readme_click" href="https://github.com/delight0517-art/chatgpt-attention-alert#readme">설치 방법 보기</a>
+  </div>
+  <h2>카드가 보여 주는 것</h2>
+  <ul><li>어느 대화가 확인을 기다리는지 알 수 있는 채팅 제목과 요청 문구</li><li>사용자가 누르면 해당 대화로 이동하는 카드</li><li>창을 닫는 X, 24시간 새 알림 중지, 사용자 지정 알림음</li></ul>
+  <p>대화 제목과 URL은 호출하는 쪽에서 도우미에 전달해야 합니다. 이 도구는 채팅을 감시하거나 브라우저 알림을 가로채지 않습니다. 플러그인과 macOS 또는 Windows 도우미를 함께 설치해야 합니다.</p>
+  <p>인증 요청에서 서비스와 계정을 같이 확인하고 싶다면 <a data-market-event="intent_click" href="/chatgpt-attention-alert/ko/auth-context/">인증·계정 안내 페이지</a>를 보세요.</p>
+  <footer><a href="/chatgpt-attention-alert/">홈</a> · <a href="/chatgpt-attention-alert/privacy.html">개인정보·통계 안내</a> · <button class="privacy-control" type="button" data-analytics-settings>통계 설정</button></footer>
+</main><script src="/chatgpt-attention-alert/assets/market-analytics.js" defer></script></body>
+</html>
