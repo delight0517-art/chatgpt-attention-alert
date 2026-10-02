@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Title = '',
     [string]$Message = 'Please check this chat.',
     [string]$ChatUrl = '',

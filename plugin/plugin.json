@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "chatgpt-attention-alert",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Native, persistent user-attention alerts for local ChatGPT desktop and Codex workflows.",
   "author": { "name": "ChatGPT Attention Alert contributors" },
   "repository": "https://github.com/delight0517-art/chatgpt-attention-alert",
