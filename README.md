@@ -21,8 +21,10 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 
 - Opens the supplied chat URL before playing sound; without a valid HTTP(S) chat URL it stays silent.
 - Shows the chat title and requested action in a floating card.
+- Uses an opaque card and offsets simultaneous alerts so their arrival order remains visible.
 - Keeps the card open until the user acknowledges it.
 - Lets the user toggle sound from the card or command line.
+- Lets the user choose a custom `.wav` alert sound on macOS and Windows, or restore the system sound.
 - Offers an **Open chat** button only when a chat URL is provided.
 - Runs locally and sends no alert content to a server.
 
@@ -68,6 +70,8 @@ Try it:
 ~/.local/bin/chatgpt-attention-alert --sound off
 ~/.local/bin/chatgpt-attention-alert --sound on
 ~/.local/bin/chatgpt-attention-alert --sound toggle
+~/.local/bin/chatgpt-attention-alert --sound-file /path/to/alert.wav
+~/.local/bin/chatgpt-attention-alert --sound-file default
 ```
 
 ### Windows
@@ -86,9 +90,11 @@ Try it:
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Sound off
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Sound on
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Sound toggle
+& "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -SetSoundFile "C:\Sounds\alert.wav"
+& "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -SetSoundFile default
 ```
 
-The process-scoped execution policy does not change the machine's persistent PowerShell policy.
+Use an existing `.wav` file. The process-scoped execution policy does not change the machine's persistent PowerShell policy.
 
 ## Open a specific chat
 

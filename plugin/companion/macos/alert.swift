@@ -1,10 +1,12 @@
 import AppKit
 import QuartzCore
+import Darwin
 
 let chatTitle = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Chat title unavailable"
 let actionText = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : "Please check this chat."
 let chatURL = CommandLine.arguments.count > 3 ? CommandLine.arguments[3] : ""
 let preferencePath = CommandLine.arguments.count > 5 ? CommandLine.arguments[5] : ""
+let stackPath = CommandLine.arguments.count > 6 ? CommandLine.arguments[6] : ""
 var soundEnabled = CommandLine.arguments.count <= 4 || CommandLine.arguments[4] != "off"
 let canOpenChat: Bool = {
     guard let components = URLComponents(string: chatURL),
@@ -52,11 +54,29 @@ window.level = .floating
 window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
 let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-window.setFrameOrigin(NSPoint(x: screen.maxX - size.width - 28, y: screen.maxY - size.height - 28))
+var stackIndex = 0
+if !stackPath.isEmpty {
+    let fd = open(stackPath, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+    if fd >= 0 {
+        flock(fd, LOCK_EX)
+        var buffer = [CChar](repeating: 0, count: 32)
+        let count = read(fd, &buffer, buffer.count - 1)
+        if count > 0 { stackIndex = Int(String(cString: buffer)) ?? 0 }
+        lseek(fd, 0, SEEK_SET)
+        ftruncate(fd, 0)
+        let next = Array("\(stackIndex + 1)".utf8)
+        _ = next.withUnsafeBytes { write(fd, $0.baseAddress, next.count) }
+        flock(fd, LOCK_UN)
+        close(fd)
+    }
+}
+let stackSlots = max(1, Int(min(screen.width - size.width, screen.height - size.height) / 28) + 1)
+let offset = CGFloat(stackIndex % stackSlots) * 28
+window.setFrameOrigin(NSPoint(x: screen.maxX - size.width - 28 - offset, y: screen.maxY - size.height - 28 - offset))
 
 let card = NSView(frame: NSRect(origin: .zero, size: size))
 card.wantsLayer = true
-card.layer?.backgroundColor = NSColor(calibratedRed: 0.055, green: 0.09, blue: 0.14, alpha: 0.98).cgColor
+card.layer?.backgroundColor = NSColor(calibratedRed: 0.055, green: 0.09, blue: 0.14, alpha: 1).cgColor
 card.layer?.cornerRadius = 20
 card.layer?.borderWidth = 2
 card.layer?.borderColor = NSColor(calibratedRed: 0.24, green: 0.88, blue: 1, alpha: 0.95).cgColor

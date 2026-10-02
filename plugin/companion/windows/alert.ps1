@@ -2,29 +2,43 @@ param(
     [string]$Title = '',
     [string]$Message = 'Please check this chat.',
     [string]$ChatUrl = '',
+    [string]$SetSoundFile = '',
     [ValidateSet('show', 'on', 'off', 'toggle')]
     [string]$Sound = 'show'
 )
 
 $ErrorActionPreference = 'Stop'
 $configDir = Join-Path $env:APPDATA 'ChatGPTAttentionAlert'
-$soundFile = Join-Path $configDir 'sound.txt'
+$soundPreferenceFile = Join-Path $configDir 'sound.txt'
+$customSoundPreferenceFile = Join-Path $configDir 'sound-file.txt'
 New-Item -ItemType Directory -Force -Path $configDir | Out-Null
 
+if (-not [string]::IsNullOrWhiteSpace($SetSoundFile)) {
+    if ($SetSoundFile -eq 'default') {
+        Remove-Item -Force -ErrorAction SilentlyContinue -LiteralPath $customSoundPreferenceFile
+    } elseif ([IO.Path]::GetExtension($SetSoundFile) -ieq '.wav' -and (Test-Path -LiteralPath $SetSoundFile -PathType Leaf)) {
+        Set-Content -NoNewline -Encoding utf8 -LiteralPath $customSoundPreferenceFile -Value (Get-Item -LiteralPath $SetSoundFile).FullName
+    } else {
+        throw 'Choose an existing .wav file, or use -SetSoundFile default to restore the system sound.'
+    }
+    exit 0
+}
+
 if ($Sound -ne 'show') {
-    $current = if (Test-Path $soundFile) { (Get-Content -Raw $soundFile).Trim() } else { 'on' }
+    $current = if (Test-Path $soundPreferenceFile) { (Get-Content -Raw $soundPreferenceFile).Trim() } else { 'on' }
     $next = switch ($Sound) {
         'on' { 'on' }
         'off' { 'off' }
         'toggle' { if ($current -eq 'off') { 'on' } else { 'off' } }
     }
-    Set-Content -NoNewline -Encoding ascii -Path $soundFile -Value $next
+    Set-Content -NoNewline -Encoding ascii -Path $soundPreferenceFile -Value $next
     exit 0
 }
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-$script:soundEnabled = if (Test-Path $soundFile) { (Get-Content -Raw $soundFile).Trim() -ne 'off' } else { $true }
+$script:soundEnabled = if (Test-Path $soundPreferenceFile) { (Get-Content -Raw $soundPreferenceFile).Trim() -ne 'off' } else { $true }
+$script:customSoundPath = if (Test-Path -LiteralPath $customSoundPreferenceFile) { (Get-Content -Raw $customSoundPreferenceFile).Trim() } else { '' }
 $chatUrlValid = $false
 if (-not [string]::IsNullOrWhiteSpace($ChatUrl)) {
     $parsedChatUrl = $null
@@ -40,9 +54,14 @@ if ($script:soundEnabled -and -not $chatUrlValid) {
 
 if ($script:soundEnabled) {
     Start-Process -FilePath $ChatUrl
-    1..3 | ForEach-Object {
-        [System.Media.SystemSounds]::Asterisk.Play()
-        Start-Sleep -Milliseconds 250
+    if ($script:customSoundPath -and (Test-Path -LiteralPath $script:customSoundPath -PathType Leaf)) {
+        $script:soundPlayer = New-Object System.Media.SoundPlayer -ArgumentList $script:customSoundPath
+        $script:soundPlayer.Play()
+    } else {
+        1..3 | ForEach-Object {
+            [System.Media.SystemSounds]::Asterisk.Play()
+            Start-Sleep -Milliseconds 250
+        }
     }
 }
 
@@ -60,7 +79,19 @@ $form.ForeColor = [System.Drawing.Color]::White
 $openChat = { if ($chatUrlValid) { Start-Process -FilePath $ChatUrl } }
 $form.Add_Click($openChat)
 $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$form.Location = [System.Drawing.Point]::new(($bounds.Right - $form.Width - 24), ($bounds.Top + 24))
+$stackFile = Join-Path $configDir 'stack-index.txt'
+$stackMutex = [System.Threading.Mutex]::new($false, 'Local\ChatGPTAttentionAlertStack')
+$stackMutex.WaitOne()
+try {
+    $stackIndex = if (Test-Path -LiteralPath $stackFile) { [int](Get-Content -Raw -LiteralPath $stackFile) } else { 0 }
+    Set-Content -NoNewline -Encoding ascii -LiteralPath $stackFile -Value ($stackIndex + 1)
+} finally {
+    $stackMutex.ReleaseMutex()
+    $stackMutex.Dispose()
+}
+$stackSlots = [Math]::Max(1, [int]([Math]::Min(($bounds.Width - $form.Width), ($bounds.Height - $form.Height)) / 28) + 1)
+$offset = ($stackIndex % $stackSlots) * 28
+$form.Location = [System.Drawing.Point]::new(($bounds.Right - $form.Width - 24 - $offset), ($bounds.Top + 24 + $offset))
 
 $heading = New-Object System.Windows.Forms.Label
 $heading.Text = 'GPT NEEDS YOU  ·  확인이 필요해요'
@@ -94,7 +125,7 @@ $mute.Size = [System.Drawing.Size]::new(105, 30)
 $mute.Add_Click({
     $script:soundEnabled = -not $script:soundEnabled
     $mute.Text = if ($script:soundEnabled) { '소리 끄기' } else { '소리 켜기' }
-    Set-Content -NoNewline -Encoding ascii -Path $soundFile -Value $(if ($script:soundEnabled) { 'on' } else { 'off' })
+    Set-Content -NoNewline -Encoding ascii -Path $soundPreferenceFile -Value $(if ($script:soundEnabled) { 'on' } else { 'off' })
 })
 $form.Controls.Add($mute)
 

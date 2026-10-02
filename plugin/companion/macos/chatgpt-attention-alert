@@ -4,6 +4,8 @@ set -euo pipefail
 root="$HOME/.local/share/chatgpt-attention-alert"
 config="$HOME/.config/chatgpt-attention-alert"
 pref="$config/sound"
+custom_sound_pref="$config/sound-file"
+stack_index="$config/stack-index"
 mkdir -p "$config"
 
 if [[ "${1:-}" == "--sound" ]]; then
@@ -18,6 +20,19 @@ if [[ "${1:-}" == "--sound" ]]; then
       ;;
     *) print "Usage: chatgpt-attention-alert --sound on|off|toggle" >&2; exit 2 ;;
   esac
+  exit 0
+fi
+
+if [[ "${1:-}" == "--sound-file" ]]; then
+  sound_file=${2:-}
+  if [[ "$sound_file" == "default" ]]; then
+    rm -f "$custom_sound_pref"
+  elif [[ "$sound_file" == *.wav || "$sound_file" == *.WAV ]]; then
+    if [[ ! -f "$sound_file" ]]; then print "Sound file not found: $sound_file" >&2; exit 1; fi
+    print -r -- "$sound_file" > "$custom_sound_pref"
+  else
+    print "Usage: chatgpt-attention-alert --sound-file <file.wav|default>" >&2; exit 2
+  fi
   exit 0
 fi
 
@@ -39,10 +54,16 @@ if [[ "$sound" == "on" ]]; then
   fi
 fi
 
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" >/dev/null 2>&1 </dev/null &!
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" >/dev/null 2>&1 </dev/null &!
 if [[ "$sound" == "on" ]]; then
-  for _ in 1 2 3; do
-    /usr/bin/afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 || true
-    /bin/sleep 0.25
-  done
+  custom_sound=""
+  if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
+  if [[ -n "$custom_sound" && -f "$custom_sound" ]] && /usr/bin/afplay "$custom_sound" >/dev/null 2>&1; then
+    :
+  else
+    for _ in 1 2 3; do
+      /usr/bin/afplay /System/Library/Sounds/Sosumi.aiff >/dev/null 2>&1 || true
+      /bin/sleep 0.25
+    done
+  fi
 fi
