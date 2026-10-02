@@ -1,6 +1,6 @@
 # Developing on macOS and Windows
 
-The GitHub repository is the single source of truth for both desktop companions and the download site. Do not maintain separate Mac and Windows copies or exchange source files through ZIP/Drive. Keep work sequential: finish one feature on one computer, merge it, pull the result on the other computer, and verify the same feature there before starting the next one.
+The GitHub repository is the single source of truth for both desktop companions and the download site. Do not maintain separate Mac and Windows copies or exchange source files through ZIP/Drive. Keep work sequential: implement one feature on its first computer, merge it, pull that change on the other computer, and complete the matching implementation there before starting the next feature or releasing.
 
 ## Start on either computer
 
@@ -15,16 +15,17 @@ git pull --ff-only origin main
 
 For later tasks, run the last three commands from the repository folder. Do not make feature changes directly on `main`. Use a short platform-prefixed branch, for example `macos/monthly-recommendation` or `windows/monthly-recommendation`.
 
-## One feature, both companions
+## One feature, two platform steps
 
-1. Change one feature at a time. Avoid editing the same feature on both computers before the first change is merged.
-2. Update both counterparts in the same change: `plugin/companion/macos/` and `plugin/companion/windows/`. Keep the command options, visible labels, privacy behavior, and user actions equivalent. Platform-native implementation details may differ.
-3. Update the plugin instructions and README when the feature changes how the assistant or user invokes it.
-4. Push the feature branch and open a pull request to `main`. The Mac and Windows jobs in **Validate desktop companions** must both pass.
-5. For changes to native window behavior, also run the smoke checklist on a real Mac and Windows PC. CI syntax checks alone do not prove that windows, sound, or clicks work on those desktops.
-6. Merge only after the parity checklist in the pull request is complete. Then pull `main` on both computers before continuing.
+1. Change one feature at a time. Do not start another feature until this one has matching behavior on both systems.
+2. On the first computer, work only on its platform code (`plugin/companion/macos/` or `plugin/companion/windows/`). Include the intended behavior and a concise parity note in the PR. The other platform may be marked **pending** in this implementation PR.
+3. Merge the first step, then pull `main` on the other computer and create a second platform-prefixed branch for the matching implementation. Preserve the same user action, labels, command options, and privacy behavior; native UI details may differ.
+4. Push the matching implementation and open its PR to `main`. The Mac and Windows jobs in **Validate desktop companions** must both pass.
+5. Update plugin instructions and the README when invocation, behavior, or privacy details change. Complete the parity fields in the PR template.
+6. For changes to native window behavior, run the smoke checklist on a real Mac and Windows PC. CI syntax checks alone do not prove that windows, sound, or clicks work on those desktops.
+7. Only after the second step is merged and both runtime checks are recorded is the feature complete. Then pull `main` on both computers before moving to the next feature.
 
-If a feature cannot be implemented on one platform yet, mark that gap plainly in the PR and do not describe the feature as cross-platform complete or put it in a release.
+If a feature cannot yet be implemented on the other platform, mark it **pending** plainly. Do not call it cross-platform complete or include it in a release.
 
 ## Desktop smoke checklist
 
@@ -38,4 +39,4 @@ Record the OS version and the result for each computer in the pull request. Reco
 
 ## Release and downloads
 
-Release only from merged `main` after both CI jobs pass and native smoke checks are recorded. The release ZIP must contain the plugin and both companion folders. The website's latest-download link follows the latest GitHub Release, so publish the release asset before announcing the version. Keep GitHub release/source distribution distinct from approval in an official ChatGPT plugin directory.
+Release only from merged `main` after both platform steps are complete, both CI jobs pass, and native smoke checks are recorded. The release ZIP must contain the plugin and both companion folders. The website's latest-download link follows the latest GitHub Release, so publish the release asset before announcing the version. Keep GitHub release/source distribution distinct from approval in an official ChatGPT plugin directory.
