@@ -144,5 +144,4 @@ $done.Location = [System.Drawing.Point]::new(424, 176)
 $done.Size = [System.Drawing.Size]::new(86, 30)
 $done.Add_Click({ $form.Close() })
 $form.Controls.Add($done)
-$form.AcceptButton = $done
 [void]$form.ShowDialog()

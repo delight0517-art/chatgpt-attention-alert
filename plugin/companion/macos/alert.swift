@@ -132,9 +132,7 @@ if canOpenChat {
 let done = NSButton(title: "확인", target: actions, action: #selector(AlertActions.acknowledge(_:)))
 done.frame = NSRect(x: 420, y: 16, width: 76, height: 28)
 done.bezelStyle = .rounded
-done.keyEquivalent = "\r"
 card.addSubview(done)
 
-window.makeKeyAndOrderFront(nil)
-app.activate(ignoringOtherApps: true)
+window.orderFrontRegardless()
 app.run()

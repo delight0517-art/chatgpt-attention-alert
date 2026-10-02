@@ -23,6 +23,7 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Shows the chat title and requested action in a floating card.
 - Uses an opaque card and offsets simultaneous alerts so their arrival order remains visible.
 - Keeps the card open until the user acknowledges it.
+- Leaves keyboard focus with the app you are using; typing, including Enter, does not dismiss the alert.
 - Lets the user toggle sound from the card or command line.
 - Lets the user choose a custom `.wav` alert sound on macOS and Windows, or restore the system sound.
 - Offers an **Open chat** button only when a chat URL is provided.
