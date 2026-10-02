@@ -38,3 +38,12 @@
 - **Pre-deployment evidence:** no eligible page experiment rows exist yet. Do not count internal QA, this author's visits, old property-wide Search Console impressions, or the prior GitHub release download as test results.
 - **Worker deployment:** `chatgpt-attention-alert-market` deployed to `https://chatgpt-attention-alert-market.imdisablebutgoddisable.workers.dev` on 2026-10-02, version `5ef7bb0c-cea4-4e5c-aaad-cedfdada0d24`. Wrangler confirmed the D1 binding and exact allowed origin. A temporary static preview Worker created by Wrangler's parent-directory auto-detection was deleted immediately. The active shell currently cannot resolve the marketing Worker hostname, so live HTTP preflight and summary reads remain unverified.
 - **Next readout:** after Pages is published, verify public routes/assets, sitemap and live worker HTTP behavior, and record workflow status and exact Search Console property/indexing status. Then wait for consented market exposure; avoid launching another country/copy test while this one is accumulating.
+
+### 2026-10-02 deployment readout
+
+- **Source:** commit `0c2ece4` is published on `main`.
+- **Pages:** the GitHub Pages deployment workflow `36989041986` completed successfully. The home page, both Korean intent pages, privacy page, sitemap, robots file, analytics script, and both thumbnail assets returned HTTP 200.
+- **Validation:** workflow `36989042056` passed macOS source/analytics checks and Windows PowerShell parsing.
+- **Aggregate service:** Worker version `5ef7bb0c-cea4-4e5c-aaad-cedfdada0d24` is deployed. Remote D1 reported 0 aggregate rows immediately after deployment; no synthetic visit was inserted. HTTP requests to the Worker hostname could not be verified because this execution environment could not resolve the `workers.dev` hostname. Confirm endpoint resolution and CORS before treating collection as live.
+- **Google search:** adding `https://delight0517-art.github.io/` to the connected Search Console workspace returned `not_found`; it must first be added and ownership-verified in Search Console. Sitemap submission, Google query/impression reporting, crawl/index status, and actual Google preview selection are therefore pending.
+- **Experiment start:** site publication is not yet an experiment exposure. Start the 28-day observation window only after Worker HTTP/CORS is confirmed and consented Korean traffic has begun; do not infer demand or choose a thumbnail winner from deployments or QA.
