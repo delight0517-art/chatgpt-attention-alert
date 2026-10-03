@@ -14,6 +14,7 @@ jobs:
         run: |
           swiftc -typecheck plugin/companion/macos/alert.swift
           zsh -n plugin/companion/macos/chatgpt-attention-alert
+          python3 scripts/test_drive_state.py
       - name: Check analytics script and worker
         run: |
           node --check docs/assets/market-analytics.js
