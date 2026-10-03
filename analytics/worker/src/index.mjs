@@ -1,11 +1,11 @@
 const APP_ID = "chatgpt-attention-alert";
 const EVENTS = new Set(["page_view", "release_click", "readme_click", "intent_click"]);
-const PAGES = new Set(["home", "persistent-alerts", "auth-context", "privacy"]);
+const PAGES = new Set(["home", "home-en", "home-ja", "home-zh-hans", "persistent-alerts", "auth-context", "privacy"]);
 const SOURCES = new Set(["google", "bing", "github", "kakao", "x", "reddit", "direct", "other"]);
 const MEDIUMS = new Set(["organic", "referral", "social", "direct", "other"]);
 const CAMPAIGNS = new Set(["kr_pilot_2026q4", "none", "other"]);
 const DEVICES = new Set(["phone", "tablet", "computer", "unknown"]);
-const LOCALES = new Set(["ko", "en", "other"]);
+const LOCALES = new Set(["ko", "en", "ja", "zh-hans", "other"]);
 
 function headers(origin, allowedOrigin) {
   const accepted = origin === allowedOrigin;
