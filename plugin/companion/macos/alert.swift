@@ -24,10 +24,14 @@ let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
 let colorsPath = CommandLine.arguments.count > 16 ? CommandLine.arguments[16] : ""
 var savedColors: [String: String] = [:]
+var savedOpacities: [String: String] = [:]
 if let contents = try? String(contentsOfFile: colorsPath, encoding: .utf8) {
     for line in contents.split(whereSeparator: \.isNewline) {
         let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
-        if pair.count == 2 { savedColors[pair[0]] = pair[1] }
+        if pair.count == 2 {
+            if pair[0].hasPrefix("opacity.") { savedOpacities[String(pair[0].dropFirst("opacity.".count))] = pair[1] }
+            else { savedColors[pair[0]] = pair[1] }
+        }
     }
 }
 func color(_ role: String, fallback: String) -> NSColor {
@@ -41,6 +45,10 @@ func colorFromHex(_ value: String) -> NSColor {
     guard let rgb = UInt32(hex, radix: 16) else { return .white }
     return NSColor(calibratedRed: CGFloat((rgb >> 16) & 0xff) / 255, green: CGFloat((rgb >> 8) & 0xff) / 255, blue: CGFloat(rgb & 0xff) / 255, alpha: 1)
 }
+func alpha(_ role: String, fallback: CGFloat = 1) -> CGFloat {
+    guard let value = savedOpacities[role], let percent = Double(value), (0...100).contains(percent) else { return fallback }
+    return CGFloat(percent / 100)
+}
 let backgroundColor = color("background", fallback: "#0E1724")
 let accentColor = color("accent", fallback: "#61EBFF")
 let textColor = color("text", fallback: "#FFFFFF")
@@ -53,8 +61,9 @@ func styleButton(_ button: NSButton, prominent: Bool = false) {
     button.isBordered = false
     button.wantsLayer = true
     button.layer?.cornerRadius = 8
-    button.layer?.backgroundColor = (prominent ? accentColor : buttonColor).cgColor
-    let foreground = prominent ? color("button-text", fallback: "#102033") : buttonTextColor
+    let fill = prominent ? accentColor.withAlphaComponent(alpha("accent")) : buttonColor.withAlphaComponent(alpha("button"))
+    button.layer?.backgroundColor = fill.cgColor
+    let foreground = (prominent ? color("button-text", fallback: "#102033") : buttonTextColor).withAlphaComponent(alpha("button-text"))
     button.attributedTitle = NSAttributedString(string: button.title, attributes: [.foregroundColor: foreground, .font: button.font ?? .systemFont(ofSize: 13, weight: .medium)])
     button.contentTintColor = foreground
 }
@@ -228,7 +237,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     @objc func toggleSound(_ sender: NSButton) {
         soundEnabled.toggle()
         sender.title = soundEnabled ? "소리 끄기" : "소리 켜기"
-        sender.attributedTitle = NSAttributedString(string: sender.title, attributes: [.foregroundColor: buttonTextColor, .font: sender.font ?? .systemFont(ofSize: 13, weight: .medium)])
+        sender.attributedTitle = NSAttributedString(string: sender.title, attributes: [.foregroundColor: buttonTextColor.withAlphaComponent(alpha("button-text")), .font: sender.font ?? .systemFont(ofSize: 13, weight: .medium)])
         if !preferencePath.isEmpty {
             try? (soundEnabled ? "on\n" : "off\n").write(toFile: preferencePath, atomically: true, encoding: .utf8)
         }
@@ -300,11 +309,11 @@ window.setFrameOrigin(NSPoint(x: screen.maxX - size.width - 28 - offset, y: scre
 
 let card = NSView(frame: NSRect(origin: .zero, size: size))
 card.wantsLayer = true
-card.layer?.backgroundColor = backgroundColor.withAlphaComponent(0.82).cgColor
+card.layer?.backgroundColor = backgroundColor.withAlphaComponent(alpha("background", fallback: 0.82)).cgColor
 card.layer?.cornerRadius = 20
 card.layer?.borderWidth = 2
-card.layer?.borderColor = accentColor.withAlphaComponent(0.95).cgColor
-card.layer?.shadowColor = accentColor.cgColor
+card.layer?.borderColor = accentColor.withAlphaComponent(0.95 * alpha("accent")).cgColor
+card.layer?.shadowColor = accentColor.withAlphaComponent(alpha("accent")).cgColor
 card.layer?.shadowOffset = .zero
 card.layer?.shadowOpacity = 0.9
 card.layer?.shadowRadius = 18
@@ -332,7 +341,7 @@ statusItem.menu = statusMenu
 let heading = NSTextField(labelWithString: "GPT NEEDS YOU  ·  확인이 필요해요")
 heading.frame = NSRect(x: 54, y: size.height - 36, width: 410, height: 20)
 heading.font = .systemFont(ofSize: 13, weight: .bold)
-heading.textColor = accentColor
+heading.textColor = accentColor.withAlphaComponent(alpha("accent"))
 card.addSubview(heading)
 let closeButton = NSButton(title: "×", target: actions, action: #selector(AlertActions.acknowledge(_:)))
 closeButton.frame = NSRect(x: 16, y: size.height - 40, width: 28, height: 28)
@@ -343,7 +352,7 @@ card.addSubview(closeButton)
 let title = NSTextField(wrappingLabelWithString: chatTitle)
 title.frame = NSRect(x: 22, y: expandedAuthCard ? 244 : (hasAuthContext || recommendation != nil) ? 174 : 142, width: 470, height: 38)
 title.font = .systemFont(ofSize: 21, weight: .semibold)
-title.textColor = textColor
+title.textColor = textColor.withAlphaComponent(alpha("text"))
 title.maximumNumberOfLines = 2
 card.addSubview(title)
 
@@ -353,14 +362,14 @@ if hasAuthContext {
     let identity = NSTextField(labelWithString: "인증 대상  ·  \(service)  ·  \(account)")
     identity.frame = NSRect(x: 22, y: expandedAuthCard ? 214 : 144, width: 470, height: 18)
     identity.font = .systemFont(ofSize: 13)
-    identity.textColor = textColor.withAlphaComponent(0.78)
+    identity.textColor = textColor.withAlphaComponent(0.78 * alpha("text"))
     card.addSubview(identity)
 }
 
 let action = NSTextField(wrappingLabelWithString: actionText)
 action.frame = NSRect(x: 22, y: expandedAuthCard ? 130 : recommendation == nil ? 58 : 78, width: 468, height: expandedAuthCard ? 66 : recommendation == nil ? 70 : 50)
 action.font = .systemFont(ofSize: 15)
-action.textColor = textColor.withAlphaComponent(0.9)
+action.textColor = textColor.withAlphaComponent(0.9 * alpha("text"))
 action.maximumNumberOfLines = 3
 card.addSubview(action)
 actionLabel = action
@@ -371,13 +380,13 @@ if let recommendation {
     link.isBordered = false
     link.alignment = .left
     link.font = .systemFont(ofSize: 10, weight: .medium)
-    link.contentTintColor = NSColor(calibratedRed: 0.55, green: 0.89, blue: 0.76, alpha: 1)
+    link.contentTintColor = NSColor(calibratedRed: 0.55, green: 0.89, blue: 0.76, alpha: alpha("accent"))
     card.addSubview(link)
 
     let note = NSTextField(labelWithString: "관심 주제는 기기에만 저장 · 추천 AI 토큰 0 · 대화 본문 미저장")
     note.frame = NSRect(x: 270, y: 48, width: 230, height: 18)
     note.font = .systemFont(ofSize: 8)
-    note.textColor = NSColor(calibratedWhite: 0.68, alpha: 1)
+    note.textColor = NSColor(calibratedWhite: 0.68, alpha: alpha("text"))
     card.addSubview(note)
 }
 
@@ -385,7 +394,7 @@ if expandedAuthCard {
     let status = NSTextField(labelWithString: "")
     status.frame = NSRect(x: 22, y: 96, width: 476, height: 18)
     status.font = .systemFont(ofSize: 11, weight: .medium)
-    status.textColor = NSColor(calibratedRed: 0.55, green: 0.9, blue: 0.76, alpha: 1)
+    status.textColor = NSColor(calibratedRed: 0.55, green: 0.9, blue: 0.76, alpha: alpha("text"))
     card.addSubview(status)
     authStatusLabel = status
     if actionURL != nil {

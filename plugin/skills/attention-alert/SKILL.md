@@ -26,10 +26,16 @@ When the user asks to customize this companion's colors, update its saved palett
 ~/.local/bin/chatgpt-attention-alert --color text '#FFFFFF'
 ~/.local/bin/chatgpt-attention-alert --color button '#293B58'
 ~/.local/bin/chatgpt-attention-alert --color button-text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --opacity background 55
+~/.local/bin/chatgpt-attention-alert --opacity accent 85
+~/.local/bin/chatgpt-attention-alert --opacity button 90
+~/.local/bin/chatgpt-attention-alert --opacity text 100
+~/.local/bin/chatgpt-attention-alert --opacity button-text 100
+~/.local/bin/chatgpt-attention-alert --opacity reset
 ~/.local/bin/chatgpt-attention-alert --color reset
 ```
 
-Supported roles are `background`, `accent`, `text`, `button`, and `button-text`; each value must be `#RRGGBB`. The palette is stored locally in the user's config directory, applies to newly opened alerts, and can be reset to the built-in defaults. The alert renders button backgrounds and labels with explicit colors so system dark mode cannot make the text disappear.
+Supported roles are `background`, `accent`, `text`, `button`, and `button-text`. Colors use `#RRGGBB`; opacity uses a whole-number percentage from `0` (transparent) to `100` (opaque). Opacity changes only the selected role and is stored locally with the palette. `--opacity reset` restores default opacity while keeping custom colors; `--color reset` restores all built-in colors and opacity. Changes apply to new alerts. The alert renders button backgrounds and labels with explicit colors so system dark mode cannot make the text disappear.
 
 ## Authentication handoff
 

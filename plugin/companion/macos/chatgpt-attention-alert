@@ -21,6 +21,8 @@ Usage:
   chatgpt-attention-alert --recommendations on|off
   chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB>
   chatgpt-attention-alert --color reset
+  chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100>
+  chatgpt-attention-alert --opacity reset
 USAGE
   exit 0
 fi
@@ -38,6 +40,29 @@ if [[ "${1:-}" == "--color" ]]; then
   chmod 600 "$colors_pref"
   tmp="$colors_pref.tmp.$$"
   awk -F= -v key="$role" -v value="$color" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$colors_pref"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--opacity" ]]; then
+  role=${2:-}
+  opacity=${3:-}
+  if [[ "$role" == "reset" && -z "$opacity" ]]; then
+    if [[ -r "$colors_pref" ]]; then
+      tmp="$colors_pref.tmp.$$"
+      awk -F= '$1 !~ /^opacity\./ { print }' "$colors_pref" > "$tmp"
+      chmod 600 "$tmp"
+      if [[ -s "$tmp" ]]; then mv "$tmp" "$colors_pref"; else rm -f "$tmp" "$colors_pref"; fi
+    fi
+    exit 0
+  fi
+  case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100> | reset' >&2; exit 2 ;; esac
+  if [[ ! "$opacity" == <-> ]] || (( opacity > 100 )); then print 'Opacity must be a whole-number percentage from 0 to 100.' >&2; exit 2; fi
+  touch "$colors_pref"
+  chmod 600 "$colors_pref"
+  tmp="$colors_pref.tmp.$$"
+  awk -F= -v key="opacity.$role" -v value="$opacity" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
   chmod 600 "$tmp"
   mv "$tmp" "$colors_pref"
   exit 0

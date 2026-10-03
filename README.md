@@ -118,10 +118,16 @@ On macOS, an AI agent can change the installed alert palette when you ask it to:
 ~/.local/bin/chatgpt-attention-alert --color text '#FFFFFF'
 ~/.local/bin/chatgpt-attention-alert --color button '#293B58'
 ~/.local/bin/chatgpt-attention-alert --color button-text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --opacity background 55
+~/.local/bin/chatgpt-attention-alert --opacity accent 85
+~/.local/bin/chatgpt-attention-alert --opacity button 90
+~/.local/bin/chatgpt-attention-alert --opacity text 100
+~/.local/bin/chatgpt-attention-alert --opacity button-text 100
+~/.local/bin/chatgpt-attention-alert --opacity reset
 ~/.local/bin/chatgpt-attention-alert --color reset
 ```
 
-Use `#RRGGBB` values and the roles `background`, `accent`, `text`, `button`, or `button-text`. Changes are saved locally and apply to new alerts. Reset restores the built-in colors. Button text and fills are drawn explicitly for readable contrast in dark mode. Windows color settings are pending the matching Windows implementation.
+Use `#RRGGBB` values for colors and whole-number percentages from `0` (transparent) to `100` (opaque) for opacity. Both use the roles `background`, `accent`, `text`, `button`, or `button-text`. Changes are saved locally and apply to new alerts. `--opacity reset` resets opacity while keeping colors; `--color reset` restores the complete default palette. Button text and fills are drawn explicitly for readable contrast in dark mode. Windows color settings are pending the matching Windows implementation.
 
 Use an existing `.wav` file. The process-scoped execution policy does not change the machine's persistent PowerShell policy.
 When another window covers the alert, open the Windows notification-area icon's menu and choose **GPT 알리미 열어줘**, or double-click the icon.
