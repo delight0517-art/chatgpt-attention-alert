@@ -16,6 +16,7 @@ let recommendationsEnabled = CommandLine.arguments.count <= 11 || CommandLine.ar
 let recommendationStatePath = CommandLine.arguments.count > 12 ? CommandLine.arguments[12] : ""
 var soundEnabled = soundEnabledArg != "off"
 var actionLabel: NSTextField?
+var actionStatusLabel: NSTextField?
 var authStatusLabel: NSTextField?
 var authLinkButton: NSButton?
 var reissueButton: NSButton?
@@ -100,6 +101,15 @@ func readableButtonText(for fill: NSColor, fillOpacity: CGFloat) -> NSColor {
 
 let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
 var authStatusIsActionResult = false
+
+func showActionStatus(_ message: String) {
+    if let authStatusLabel {
+        authStatusLabel.stringValue = message
+        authStatusIsActionResult = true
+    } else {
+        actionStatusLabel?.stringValue = message
+    }
+}
 
 func styleButton(_ button: NSButton, prominent: Bool = false) {
     button.isBordered = false
@@ -304,28 +314,28 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
 
     @objc func openChat(_ sender: Any?) {
         guard canOpenChat, let url = URL(string: chatURL) else {
-            actionLabel?.stringValue = "이 알림에는 유효한 채팅 링크가 없습니다."
+            showActionStatus("이 알림에는 유효한 채팅 링크가 없습니다.")
             NSSound.beep()
             return
         }
         guard NSWorkspace.shared.open(url) else {
-            actionLabel?.stringValue = "채팅을 열지 못했습니다. 다시 눌러 주세요."
+            showActionStatus("채팅을 열지 못했습니다. 다시 눌러 주세요.")
             NSSound.beep()
             return
         }
-        actionLabel?.stringValue = "대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다."
+        showActionStatus("대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다.")
     }
 
     @objc func resume(_ sender: NSButton) {
         guard UUID(uuidString: resumeThreadID) != nil else { return }
         let paths = ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"] + (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { URL(fileURLWithPath: String($0)).appendingPathComponent("codex").path }
         guard let executable = paths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
-            actionLabel?.stringValue = tr("Codex CLI를 찾지 못했습니다. 설치 후 다시 시도해 주세요.", "Codex CLI was not found. Install it and try again.", "Codex CLI が見つかりません。インストールして再試行してください。", "找不到 Codex CLI。请安装后重试。")
+            showActionStatus(tr("Codex CLI를 찾지 못했습니다. 설치 후 다시 시도해 주세요.", "Codex CLI was not found. Install it and try again.", "Codex CLI が見つかりません。インストールして再試行してください。", "找不到 Codex CLI。请安装后重试。"))
             NSSound.beep()
             return
         }
         sender.isEnabled = false
-        actionLabel?.stringValue = tr("요청을 대화에 보내는 중…", "Sending the resume request…", "再開リクエストを送信中…", "正在发送继续请求…")
+        showActionStatus(tr("요청을 대화에 보내는 중…", "Sending the resume request…", "再開リクエストを送信中…", "正在发送继续请求…"))
         DispatchQueue.global(qos: .userInitiated).async {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executable)
@@ -339,17 +349,17 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
                 DispatchQueue.main.async {
                     sender.isEnabled = true
                     if process.terminationStatus == 0 {
-                        actionLabel?.stringValue = tr("재개 요청을 보냈습니다. Codex가 기존 작업을 확인합니다.", "Resume request sent. Codex will check the existing task.", "再開リクエストを送信しました。Codex が既存の作業を確認します。", "已发送继续请求。Codex 将检查现有任务。")
+                        showActionStatus(tr("재개 요청을 보냈습니다. Codex가 기존 작업을 확인합니다.", "Resume request sent. Codex will check the existing task.", "再開リクエストを送信しました。Codex が既存の作業を確認します。", "已发送继续请求。Codex 将检查现有任务。"))
                         if let url = URL(string: "codex://threads/\(self.resumeThreadID)") { NSWorkspace.shared.open(url) }
                     } else {
-                        actionLabel?.stringValue = tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。")
+                        showActionStatus(tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。"))
                         NSSound.beep()
                     }
                 }
             } catch {
                 DispatchQueue.main.async {
                     sender.isEnabled = true
-                    actionLabel?.stringValue = tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。")
+                    showActionStatus(tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。"))
                     NSSound.beep()
                 }
             }
@@ -374,7 +384,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let expandedAuthCard = hasAuthControls
-let size = NSSize(width: 520, height: expandedAuthCard ? 322 : (hasAuthContext || recommendation != nil) ? 252 : 220)
+let size = NSSize(width: 520, height: expandedAuthCard ? 322 : ((hasAuthContext || recommendation != nil) ? 276 : 242))
 let window = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false)
 window.title = "ChatGPT Attention Alert"
 window.hidesOnDeactivate = false
@@ -453,7 +463,7 @@ styleButton(closeButton, prominent: true)
 card.addSubview(closeButton)
 
 let title = NSTextField(wrappingLabelWithString: chatTitle)
-title.frame = NSRect(x: 22, y: expandedAuthCard ? 244 : (hasAuthContext || recommendation != nil) ? 174 : 142, width: 470, height: 38)
+title.frame = NSRect(x: 22, y: expandedAuthCard ? 244 : (hasAuthContext || recommendation != nil) ? 196 : 164, width: 470, height: 38)
 title.font = .systemFont(ofSize: 21, weight: .semibold)
 title.textColor = textColor.withAlphaComponent(alpha("text"))
 title.maximumNumberOfLines = 2
@@ -463,14 +473,14 @@ if hasAuthContext {
     let service = authService.isEmpty ? "인증 서비스 확인 필요" : authService
     let account = authAccount.isEmpty ? "계정 확인 필요" : authAccount
     let identity = NSTextField(labelWithString: "인증 대상  ·  \(service)  ·  \(account)")
-    identity.frame = NSRect(x: 22, y: expandedAuthCard ? 214 : 144, width: 470, height: 18)
+    identity.frame = NSRect(x: 22, y: expandedAuthCard ? 214 : 166, width: 470, height: 18)
     identity.font = .systemFont(ofSize: 13)
     identity.textColor = textColor.withAlphaComponent(0.78 * alpha("text"))
     card.addSubview(identity)
 }
 
 let action = NSTextField(wrappingLabelWithString: actionText)
-action.frame = NSRect(x: 22, y: expandedAuthCard ? 130 : recommendation == nil ? 58 : 78, width: 468, height: expandedAuthCard ? 66 : recommendation == nil ? 70 : 50)
+action.frame = NSRect(x: 22, y: expandedAuthCard ? 130 : recommendation == nil ? 80 : 100, width: 468, height: expandedAuthCard ? 66 : recommendation == nil ? 70 : 50)
 action.font = .systemFont(ofSize: 15)
 action.textColor = textColor.withAlphaComponent(0.9 * alpha("text"))
 action.maximumNumberOfLines = 3
@@ -491,6 +501,15 @@ if let recommendation {
     note.font = .systemFont(ofSize: 8)
     note.textColor = NSColor(calibratedWhite: 0.68, alpha: alpha("text"))
     card.addSubview(note)
+}
+
+if !expandedAuthCard {
+    let status = NSTextField(labelWithString: "")
+    status.frame = NSRect(x: 22, y: recommendation == nil ? 48 : 72, width: 476, height: 15)
+    status.font = .systemFont(ofSize: 10, weight: .medium)
+    status.textColor = NSColor(calibratedWhite: 0.72, alpha: alpha("text"))
+    card.addSubview(status)
+    actionStatusLabel = status
 }
 
 if expandedAuthCard {
