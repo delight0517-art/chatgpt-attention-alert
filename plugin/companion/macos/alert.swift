@@ -238,7 +238,6 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
             refreshAuthControls()
             return
         }
-        NSApp.windows.forEach { $0.level = .normal }
         guard NSWorkspace.shared.open(actionURL) else {
             authStatusLabel?.stringValue = "요청 페이지를 열지 못했습니다. 다시 눌러 주세요."
             NSSound.beep()
@@ -281,7 +280,6 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
             NSSound.beep()
             return
         }
-        NSApp.windows.forEach { $0.level = .normal }
         guard NSWorkspace.shared.open(url) else {
             actionLabel?.stringValue = "채팅을 열지 못했습니다. 다시 눌러 주세요."
             NSSound.beep()
@@ -353,6 +351,7 @@ let window = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: 
 window.title = "ChatGPT Attention Alert"
 window.hidesOnDeactivate = false
 window.isFloatingPanel = true
+window.isMovableByWindowBackground = true
 window.isOpaque = false
 window.backgroundColor = .clear
 window.level = .floating
