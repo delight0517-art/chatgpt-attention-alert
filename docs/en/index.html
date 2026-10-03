@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatGPT &amp; Codex Attention Alerts for macOS and Windows | GPT Needs You</title>
+  <meta name="description" content="A free open-source ChatGPT and Codex desktop alert that keeps the conversation and requested action visible on macOS and Windows.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <link rel="canonical" href="https://delight0517-art.github.io/chatgpt-attention-alert/en/">
+  <link rel="alternate" hreflang="ko" href="https://delight0517-art.github.io/chatgpt-attention-alert/">
+  <link rel="alternate" hreflang="en" href="https://delight0517-art.github.io/chatgpt-attention-alert/en/">
+  <link rel="alternate" hreflang="ja" href="https://delight0517-art.github.io/chatgpt-attention-alert/ja/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://delight0517-art.github.io/chatgpt-attention-alert/zh-Hans/">
+  <link rel="alternate" hreflang="x-default" href="https://delight0517-art.github.io/chatgpt-attention-alert/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://delight0517-art.github.io/chatgpt-attention-alert/en/">
+  <meta property="og:title" content="ChatGPT &amp; Codex Attention Alerts">
+  <meta property="og:description" content="Keep the conversation that needs your attention visible while you work.">
+  <meta property="og:image" content="https://delight0517-art.github.io/chatgpt-attention-alert/assets/preview-kr-a.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <style>
+    :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2d;--ink:#eef3ff;--muted:#b8c4d8;--accent:#83e6c0;--line:#35435f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#172845 0,transparent 42%),var(--bg);color:var(--ink);font:1rem/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}main{width:min(920px,calc(100% - 36px));margin:auto;padding:42px 0 48px}nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}nav a{padding:5px 10px;border:1px solid var(--line);border-radius:8px;text-decoration:none}nav [aria-current=page]{border-color:var(--accent);color:var(--ink);font-weight:700}.tag{color:var(--accent);font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:.82rem}h1{font-size:clamp(2.25rem,7vw,4rem);line-height:1.1;letter-spacing:-.04em;max-width:18ch}h2{margin-top:2.2rem;font-size:1.45rem}p,li{color:var(--muted);max-width:78ch}.lead{font-size:1.2rem}.actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.button{display:inline-block;padding:11px 17px;border-radius:10px;background:var(--accent);color:#07150f;text-decoration:none;font-weight:750}.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}.preview{display:block;width:min(100%,760px);height:auto;border:1px solid var(--line);border-radius:16px;margin:28px 0}pre{overflow:auto;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}code{color:#d4f7e9}a{color:var(--accent)}footer{margin-top:38px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted)}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+  </style>
+</head>
+<body><main>
+  <nav aria-label="Choose language">
+    <a href="/chatgpt-attention-alert/" lang="ko">한국어</a><a href="/chatgpt-attention-alert/en/" lang="en" aria-current="page">English</a><a href="/chatgpt-attention-alert/ja/" lang="ja">日本語</a><a href="/chatgpt-attention-alert/zh-Hans/" lang="zh-Hans">简体中文</a>
+  </nav>
+  <p class="tag">Free · Open source · MIT · macOS + Windows</p>
+  <h1>Keep the ChatGPT or Codex conversation that needs you in view</h1>
+  <p class="lead">GPT Needs You is a local desktop companion for attention requests. It keeps the conversation title and requested action in a floating card while you type, and stacks alerts in arrival order.</p>
+  <div class="actions"><a class="button" data-market-event="release_click" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/download/v0.3.3/chatgpt-attention-alert-v0.3.3.zip">Download macOS + Windows ZIP (v0.3.3)</a><a class="button secondary" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/latest">Release notes</a><a class="button secondary" data-market-event="readme_click" href="https://github.com/delight0517-art/chatgpt-attention-alert#readme">Source and full guide</a></div>
+  <img class="preview" src="/chatgpt-attention-alert/assets/preview-kr-a.png" width="1200" height="675" fetchpriority="high" alt="Persistent desktop alert showing a ChatGPT request, account, device code area, and action buttons">
+  <h2>What the desktop alert does</h2>
+  <ul><li>Keeps the conversation title and requested action visible until you dismiss the card.</li><li>Leaves keyboard input with the app you are using; typing does not dismiss the alert.</li><li>Stacks simultaneous alerts so earlier requests remain visible.</li><li>Opens the provided chat or authentication page while keeping the alert available.</li><li>Lets you pause new alerts for 24 hours and customize sound.</li></ul>
+  <h2>Install in three steps</h2>
+  <ol><li>Download the <a data-market-event="release_click" href="https://github.com/delight0517-art/chatgpt-attention-alert/releases/download/v0.3.3/chatgpt-attention-alert-v0.3.3.zip">ZIP package</a> and extract it. The package contains the plugin and both operating-system companions.</li>
+    <li><strong>ChatGPT desktop:</strong> add the marketplace in Terminal with <code>codex plugin marketplace add delight0517-art/chatgpt-attention-alert</code>, restart ChatGPT desktop, then check Plugins for <em>ChatGPT Attention Alert</em>. Local plugins may install automatically and may not show an install card. <strong>Codex CLI:</strong> add the marketplace, then run <code>codex plugin add chatgpt-attention-alert@chatgpt-attention-alert-local</code>.</li>
+    <li><strong>Install the desktop companion:</strong> on macOS, run <code>./install-macos.sh</code> from the extracted folder. On Windows PowerShell, run <code>Set-ExecutionPolicy -Scope Process Bypass</code>, then <code>.\Install-Windows.ps1</code>.</li></ol>
+  <p>Both the plugin and the macOS or Windows companion are required. ChatGPT in a web browser alone cannot display native desktop alerts. See the <a href="https://github.com/delight0517-art/chatgpt-attention-alert#readme">complete installation guide</a> if a step is unclear.</p>
+  <h2>Privacy and recommendations</h2>
+  <p>The companion displays the title and request supplied by the agent. Recommendation matching, when enabled, uses local rules without an AI request; alert text is not saved or sent for recommendations. Authentication alerts are excluded. Read the <a href="/chatgpt-attention-alert/privacy.html">privacy and optional website analytics notice</a>.</p>
+  <h2>Common questions</h2>
+  <h3>Does installing the plugin install the desktop alert too?</h3><p>No. Install the plugin and run the companion installer for your operating system.</p>
+  <h3>Is this in the official ChatGPT public plugin directory?</h3><p>No. This is a GitHub-hosted open-source package and local marketplace source; it is not an OpenAI directory listing.</p>
+  <p><a href="/chatgpt-attention-alert/">한국어</a> · <a href="/chatgpt-attention-alert/ja/">日本語</a> · <a href="/chatgpt-attention-alert/zh-Hans/">简体中文</a></p>
+  <footer>MIT License · <a href="https://github.com/delight0517-art/chatgpt-attention-alert">GitHub source and issue tracker</a> · <a href="/chatgpt-attention-alert/privacy.html">Privacy</a></footer>
+</main><script src="/chatgpt-attention-alert/assets/market-analytics.js" defer></script></body>
+</html>
