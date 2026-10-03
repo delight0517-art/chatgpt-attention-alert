@@ -23,6 +23,7 @@ let actionURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13
 let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.arguments[14]) ?? 0 : 0
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
 let colorsPath = CommandLine.arguments.count > 16 ? CommandLine.arguments[16] : ""
+let appearanceSettingsPath = CommandLine.arguments.count > 17 ? CommandLine.arguments[17] : ""
 var savedColors: [String: String] = [:]
 var savedOpacities: [String: String] = [:]
 if let contents = try? String(contentsOfFile: colorsPath, encoding: .utf8) {
@@ -180,13 +181,16 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     let linkExpiresAt: TimeInterval
     let reissueAvailableAt: TimeInterval
     let alertWindow: NSWindow
-    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow) {
+    let appearanceSettingsPath: String
+    var appearanceSettingsProcess: Process?
+    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow, appearanceSettingsPath: String) {
         self.pauseUntilPath = pauseUntilPath
         self.recommendationURL = recommendationURL
         self.actionURL = actionURL
         self.linkExpiresAt = linkExpiresAt
         self.reissueAvailableAt = reissueAvailableAt
         self.alertWindow = alertWindow
+        self.appearanceSettingsPath = appearanceSettingsPath
     }
 
     @objc func acknowledge(_ sender: Any?) {
@@ -198,6 +202,15 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         alertWindow.level = .floating
         alertWindow.makeKeyAndOrderFront(nil)
         alertWindow.orderFrontRegardless()
+    }
+
+    @objc func openAppearanceSettings(_ sender: Any?) {
+        guard !appearanceSettingsPath.isEmpty else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
+        process.arguments = [appearanceSettingsPath, colorsPath]
+        do { try process.run(); appearanceSettingsProcess = process }
+        catch { NSSound.beep() }
     }
 
     @objc func openActionLink(_ sender: Any?) {
@@ -326,13 +339,17 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
-let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window)
+let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window, appearanceSettingsPath: appearanceSettingsPath)
 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 statusItem.button?.title = "GPT"
 let statusMenu = NSMenu()
 let showAlertItem = NSMenuItem(title: "GPT 알리미 열어줘", action: #selector(AlertActions.bringAlertForward(_:)), keyEquivalent: "")
 showAlertItem.target = actions
 statusMenu.addItem(showAlertItem)
+statusMenu.addItem(.separator())
+let appearanceItem = NSMenuItem(title: "색상·투명도 설정…", action: #selector(AlertActions.openAppearanceSettings(_:)), keyEquivalent: "")
+appearanceItem.target = actions
+statusMenu.addItem(appearanceItem)
 statusMenu.addItem(.separator())
 let dismissAlertItem = NSMenuItem(title: "확인하고 닫기", action: #selector(AlertActions.acknowledge(_:)), keyEquivalent: "")
 dismissAlertItem.target = actions

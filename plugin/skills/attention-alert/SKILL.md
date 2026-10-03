@@ -20,6 +20,8 @@ When this local desktop task cannot continue until the user responds or acts, sh
 
 When the user asks to customize this companion's colors, update its saved palette with the installed macOS command. Agents may run this local settings command only in response to the user's color request; do not infer a preference from unrelated messages.
 
+Users can open the visual settings from the menu bar **GPT → 색상·투명도 설정…** while an alert is open, or at any time with `~/.local/bin/chatgpt-attention-alert --settings`.
+
 ```sh
 ~/.local/bin/chatgpt-attention-alert --color accent '#7C5CFF'
 ~/.local/bin/chatgpt-attention-alert --color background '#172033'

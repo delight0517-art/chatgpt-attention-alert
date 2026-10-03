@@ -72,6 +72,14 @@ From this repository root, run:
 
 This copies the helper to `~/.local/share/chatgpt-attention-alert` and installs `~/.local/bin/chatgpt-attention-alert`. Add `~/.local/bin` to `PATH` if it is not already there.
 
+Open the visual appearance settings at any time with:
+
+```sh
+~/.local/bin/chatgpt-attention-alert --settings
+```
+
+While an alert is open, the menu bar **GPT** menu also has **색상·투명도 설정…**. Pick a HEX color and adjust each role's opacity slider, then select **저장**; the next alert uses the changes.
+
 Try it:
 
 ```sh

@@ -23,8 +23,13 @@ Usage:
   chatgpt-attention-alert --color reset
   chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100>
   chatgpt-attention-alert --opacity reset
+  chatgpt-attention-alert --settings
 USAGE
   exit 0
+fi
+
+if [[ "${1:-}" == "--settings" ]]; then
+  exec /usr/bin/swift "$root/appearance-settings.swift" "$colors_pref"
 fi
 
 if [[ "${1:-}" == "--color" ]]; then
@@ -158,4 +163,4 @@ if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
 recommendations=on
 if [[ -r "$recommendations_pref" ]]; then recommendations=$(<"$recommendations_pref"); fi
 [[ "$recommendations" == "off" ]] || recommendations=on
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" "$colors_pref" >/dev/null 2>&1 </dev/null &!
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" "$colors_pref" "$root/appearance-settings.swift" >/dev/null 2>&1 </dev/null &!
