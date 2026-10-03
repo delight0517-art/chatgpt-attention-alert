@@ -9,7 +9,44 @@ stack_index="$config/stack-index"
 pause_until="$config/pause-until"
 recommendations_pref="$config/recommendations"
 recommendation_state="$config/recommendation-state"
+shared_state_dir_file="$config/shared-state-dir"
+shared_unavailable_marker="$config/shared-state-unavailable"
+shared_state_helper="$root/drive-state.py"
 mkdir -p "$config"
+
+if [[ -r "$shared_state_dir_file" ]]; then shared_state_dir=$(<"$shared_state_dir_file"); else shared_state_dir=${CHATGPT_ALERT_SHARED_STATE_DIR:-}; fi
+
+shared_state() {
+  [[ -n "$shared_state_dir" ]] || return 2
+  CHATGPT_ALERT_SHARED_STATE_DIR="$shared_state_dir" python3 "$shared_state_helper" "$@"
+}
+
+mark_shared_available() {
+  if [[ -e "$shared_unavailable_marker" ]]; then command rm -f -- "$shared_unavailable_marker"; fi
+}
+
+mark_shared_unavailable() {
+  [[ -n "$shared_state_dir" ]] || return 0
+  if [[ ! -e "$shared_unavailable_marker" ]]; then
+    print -r -- unavailable > "$shared_unavailable_marker"
+    /usr/bin/osascript -e 'display notification "공유 Drive에 접근할 수 없어 이 Mac의 로컬 설정을 사용 중입니다. Google Drive for Desktop의 동기화와 권한을 확인하세요." with title "GPT 알리미 · Drive 연결 확인"' >/dev/null 2>&1 || true
+  fi
+}
+
+save_shared_preference() {
+  [[ -n "$shared_state_dir" ]] || return 0
+  if shared_state set "$1" "$2" >/dev/null; then mark_shared_available; else mark_shared_unavailable; return 1; fi
+}
+
+require_shared_state() {
+  if [[ -z "$shared_state_dir" ]]; then
+    print "Shared Drive state is not configured. Run --shared-state-dir <Drive-for-Desktop folder>." >&2
+    return 1
+  fi
+}
+
+if [[ "${1:-}" == "--record-shared-state-unavailable" ]]; then mark_shared_unavailable; exit 0; fi
+if [[ "${1:-}" == "--record-shared-state-available" ]]; then mark_shared_available; exit 0; fi
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'USAGE'
@@ -18,6 +55,9 @@ Usage:
   chatgpt-attention-alert --sound on|off|toggle
   chatgpt-attention-alert --sound-file <file.wav|default>
   chatgpt-attention-alert --recommendations on|off
+  chatgpt-attention-alert --shared-state-dir <Drive-for-Desktop-folder|off>
+  chatgpt-attention-alert --work-status <UUID> todo|in_progress|done
+  chatgpt-attention-alert --work-status-list
 USAGE
   exit 0
 fi
@@ -27,20 +67,75 @@ if [[ "${1:-}" == "--recommendations" ]]; then
     on|off)
       print -r -- "$2" > "$recommendations_pref"
       [[ "$2" == "on" ]] || rm -f "$recommendation_state"
+      save_shared_preference recommendations "$2" || print "Saved locally; Drive shared state is unavailable." >&2
       ;;
     *) print "Usage: chatgpt-attention-alert --recommendations on|off" >&2; exit 2 ;;
   esac
   exit 0
 fi
 
+if [[ "${1:-}" == "--shared-state-dir" ]]; then
+  if [[ "${2:-}" == "off" ]]; then
+    print -rn -- '' > "$shared_state_dir_file"
+    command rm -f -- "$shared_unavailable_marker"
+  elif [[ -n "${2:-}" && -d "${2:-}" && "${2}" != *$'\n'* ]]; then
+    print -r -- "$2" > "$shared_state_dir_file"
+    shared_state_dir=$2
+    if shared_state list >/dev/null; then
+      mark_shared_available
+      print "Shared state folder configured."
+    else
+      mark_shared_unavailable
+      print "Folder saved, but shared state is currently unavailable." >&2
+      exit 1
+    fi
+  else
+    print "Usage: chatgpt-attention-alert --shared-state-dir <existing Drive-for-Desktop folder|off>" >&2
+    exit 2
+  fi
+  exit 0
+fi
+
+if [[ "${1:-}" == "--work-status-list" ]]; then
+  require_shared_state || exit 1
+  if ! shared_state list; then mark_shared_unavailable; exit 1; fi
+  mark_shared_available
+  exit 0
+fi
+
+if [[ "${1:-}" == "--work-status" ]]; then
+  if [[ -z "${2:-}" || -z "${3:-}" ]]; then
+    print "Usage: chatgpt-attention-alert --work-status <UUID> todo|in_progress|done" >&2
+    exit 2
+  fi
+  require_shared_state || exit 1
+  if ! shared_state set "work.$2" "$3"; then
+    mark_shared_unavailable
+    exit 1
+  fi
+  mark_shared_available
+  exit 0
+fi
+
 if [[ "${1:-}" == "--sound" ]]; then
   case "${2:-}" in
-    on|off) print -r -- "$2" > "$pref" ;;
+    on|off)
+      print -r -- "$2" > "$pref"
+      save_shared_preference sound "$2" || print "Saved locally; Drive shared state is unavailable." >&2
+      ;;
     toggle)
-      if [[ -r "$pref" && "$(<"$pref")" == "off" ]]; then
+      current_sound=on
+      if [[ -r "$pref" ]]; then current_sound=$(<"$pref"); fi
+      if [[ -n "$shared_state_dir" ]]; then
+        remote_sound=$(shared_state get sound 2>/dev/null) || mark_shared_unavailable
+        [[ "$remote_sound" == on || "$remote_sound" == off ]] && current_sound=$remote_sound
+      fi
+      if [[ "$current_sound" == "off" ]]; then
         print -r -- on > "$pref"
+        save_shared_preference sound on || print "Saved locally; Drive shared state is unavailable." >&2
       else
         print -r -- off > "$pref"
+        save_shared_preference sound off || print "Saved locally; Drive shared state is unavailable." >&2
       fi
       ;;
     *) print "Usage: chatgpt-attention-alert --sound on|off|toggle" >&2; exit 2 ;;
@@ -112,4 +207,15 @@ if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
 recommendations=on
 if [[ -r "$recommendations_pref" ]]; then recommendations=$(<"$recommendations_pref"); fi
 [[ "$recommendations" == "off" ]] || recommendations=on
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" >/dev/null 2>&1 </dev/null &!
+if [[ -n "$shared_state_dir" ]]; then
+  if shared_settings=$(shared_state list 2>/dev/null); then
+    mark_shared_available
+    remote_sound=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("sound", ""))' "$shared_settings" 2>/dev/null) || remote_sound=""
+    remote_recommendations=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("recommendations", ""))' "$shared_settings" 2>/dev/null) || remote_recommendations=""
+    [[ "$remote_sound" == on || "$remote_sound" == off ]] && sound=$remote_sound
+    [[ "$remote_recommendations" == on || "$remote_recommendations" == off ]] && recommendations=$remote_recommendations
+  else
+    mark_shared_unavailable
+  fi
+fi
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" "$shared_state_helper" "$shared_state_dir" "$HOME/.local/bin/chatgpt-attention-alert" >/dev/null 2>&1 </dev/null &!
