@@ -369,12 +369,27 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = ["queue", "--thread", self.resumeThreadID, "--message", self.resumeMessage]
+            var environment = ProcessInfo.processInfo.environment
+            let inheritedPath = (environment["PATH"] ?? "").split(separator: ":").map(String.init)
+            var searchPaths: [String] = []
+            for path in ["/opt/homebrew/bin", "/usr/local/bin"] + inheritedPath where !searchPaths.contains(path) {
+                searchPaths.append(path)
+            }
+            environment["PATH"] = searchPaths.joined(separator: ":")
+            process.environment = environment
             process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
+            let errorPipe = Pipe()
+            process.standardError = errorPipe
             process.standardInput = FileHandle.nullDevice
             do {
                 try process.run()
+                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                 process.waitUntilExit()
+                try? errorPipe.fileHandleForReading.close()
+                let errorText = String(data: errorData, encoding: .utf8)?
+                    .split(whereSeparator: \.isNewline)
+                    .first
+                    .map(String.init) ?? ""
                 DispatchQueue.main.async {
                     sender.isEnabled = true
                     if process.terminationStatus == 0 {
@@ -383,7 +398,9 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
                         showActionStatus(openedThread ? sent : sent + " Codex 대화를 열지 못했습니다.")
                         if openedThread { self.moveAlertBehindDestination() }
                     } else {
-                        showActionStatus(tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。"))
+                        let detail = String(errorText.prefix(160))
+                        let fallback = tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。")
+                        showActionStatus(detail.isEmpty ? fallback : "\(fallback) (\(detail))")
                         NSSound.beep()
                     }
                 }
