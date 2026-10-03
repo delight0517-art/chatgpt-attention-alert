@@ -110,6 +110,19 @@ Try it:
 & "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Recommendations off
 ```
 
+On macOS, an AI agent can change the installed alert palette when you ask it to:
+
+```sh
+~/.local/bin/chatgpt-attention-alert --color accent '#7C5CFF'
+~/.local/bin/chatgpt-attention-alert --color background '#172033'
+~/.local/bin/chatgpt-attention-alert --color text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --color button '#293B58'
+~/.local/bin/chatgpt-attention-alert --color button-text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --color reset
+```
+
+Use `#RRGGBB` values and the roles `background`, `accent`, `text`, `button`, or `button-text`. Changes are saved locally and apply to new alerts. Reset restores the built-in colors. Button text and fills are drawn explicitly for readable contrast in dark mode. Windows color settings are pending the matching Windows implementation.
+
 Use an existing `.wav` file. The process-scoped execution policy does not change the machine's persistent PowerShell policy.
 When another window covers the alert, open the Windows notification-area icon's menu and choose **GPT 알리미 열어줘**, or double-click the icon.
 

@@ -22,8 +22,42 @@ var reissueButton: NSButton?
 let actionURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13] : ""
 let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.arguments[14]) ?? 0 : 0
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
+let colorsPath = CommandLine.arguments.count > 16 ? CommandLine.arguments[16] : ""
+var savedColors: [String: String] = [:]
+if let contents = try? String(contentsOfFile: colorsPath, encoding: .utf8) {
+    for line in contents.split(whereSeparator: \.isNewline) {
+        let pair = line.split(separator: "=", maxSplits: 1).map(String.init)
+        if pair.count == 2 { savedColors[pair[0]] = pair[1] }
+    }
+}
+func color(_ role: String, fallback: String) -> NSColor {
+    let value = savedColors[role] ?? fallback
+    let hex = value.hasPrefix("#") ? String(value.dropFirst()) : value
+    guard hex.count == 6, let rgb = UInt32(hex, radix: 16) else { return colorFromHex(fallback) }
+    return NSColor(calibratedRed: CGFloat((rgb >> 16) & 0xff) / 255, green: CGFloat((rgb >> 8) & 0xff) / 255, blue: CGFloat(rgb & 0xff) / 255, alpha: 1)
+}
+func colorFromHex(_ value: String) -> NSColor {
+    let hex = value.hasPrefix("#") ? String(value.dropFirst()) : value
+    guard let rgb = UInt32(hex, radix: 16) else { return .white }
+    return NSColor(calibratedRed: CGFloat((rgb >> 16) & 0xff) / 255, green: CGFloat((rgb >> 8) & 0xff) / 255, blue: CGFloat(rgb & 0xff) / 255, alpha: 1)
+}
+let backgroundColor = color("background", fallback: "#0E1724")
+let accentColor = color("accent", fallback: "#61EBFF")
+let textColor = color("text", fallback: "#FFFFFF")
+let buttonColor = color("button", fallback: "#24405A")
+let buttonTextColor = color("button-text", fallback: "#FFFFFF")
 let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
 var authStatusIsActionResult = false
+
+func styleButton(_ button: NSButton, prominent: Bool = false) {
+    button.isBordered = false
+    button.wantsLayer = true
+    button.layer?.cornerRadius = 8
+    button.layer?.backgroundColor = (prominent ? accentColor : buttonColor).cgColor
+    let foreground = prominent ? color("button-text", fallback: "#102033") : buttonTextColor
+    button.attributedTitle = NSAttributedString(string: button.title, attributes: [.foregroundColor: foreground, .font: button.font ?? .systemFont(ofSize: 13, weight: .medium)])
+    button.contentTintColor = foreground
+}
 
 struct LocalRecommendation {
     let title: String
@@ -194,6 +228,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     @objc func toggleSound(_ sender: NSButton) {
         soundEnabled.toggle()
         sender.title = soundEnabled ? "소리 끄기" : "소리 켜기"
+        sender.attributedTitle = NSAttributedString(string: sender.title, attributes: [.foregroundColor: buttonTextColor, .font: sender.font ?? .systemFont(ofSize: 13, weight: .medium)])
         if !preferencePath.isEmpty {
             try? (soundEnabled ? "on\n" : "off\n").write(toFile: preferencePath, atomically: true, encoding: .utf8)
         }
@@ -265,11 +300,11 @@ window.setFrameOrigin(NSPoint(x: screen.maxX - size.width - 28 - offset, y: scre
 
 let card = NSView(frame: NSRect(origin: .zero, size: size))
 card.wantsLayer = true
-card.layer?.backgroundColor = NSColor(calibratedRed: 0.055, green: 0.09, blue: 0.14, alpha: 0.82).cgColor
+card.layer?.backgroundColor = backgroundColor.withAlphaComponent(0.82).cgColor
 card.layer?.cornerRadius = 20
 card.layer?.borderWidth = 2
-card.layer?.borderColor = NSColor(calibratedRed: 0.24, green: 0.88, blue: 1, alpha: 0.95).cgColor
-card.layer?.shadowColor = NSColor(calibratedRed: 0.1, green: 0.78, blue: 1, alpha: 1).cgColor
+card.layer?.borderColor = accentColor.withAlphaComponent(0.95).cgColor
+card.layer?.shadowColor = accentColor.cgColor
 card.layer?.shadowOffset = .zero
 card.layer?.shadowOpacity = 0.9
 card.layer?.shadowRadius = 18
@@ -297,17 +332,18 @@ statusItem.menu = statusMenu
 let heading = NSTextField(labelWithString: "GPT NEEDS YOU  ·  확인이 필요해요")
 heading.frame = NSRect(x: 54, y: size.height - 36, width: 410, height: 20)
 heading.font = .systemFont(ofSize: 13, weight: .bold)
-heading.textColor = NSColor(calibratedRed: 0.38, green: 0.92, blue: 1, alpha: 1)
+heading.textColor = accentColor
 card.addSubview(heading)
 let closeButton = NSButton(title: "×", target: actions, action: #selector(AlertActions.acknowledge(_:)))
 closeButton.frame = NSRect(x: 16, y: size.height - 40, width: 28, height: 28)
 closeButton.bezelStyle = .rounded
+styleButton(closeButton, prominent: true)
 card.addSubview(closeButton)
 
 let title = NSTextField(wrappingLabelWithString: chatTitle)
 title.frame = NSRect(x: 22, y: expandedAuthCard ? 244 : (hasAuthContext || recommendation != nil) ? 174 : 142, width: 470, height: 38)
 title.font = .systemFont(ofSize: 21, weight: .semibold)
-title.textColor = .white
+title.textColor = textColor
 title.maximumNumberOfLines = 2
 card.addSubview(title)
 
@@ -317,14 +353,14 @@ if hasAuthContext {
     let identity = NSTextField(labelWithString: "인증 대상  ·  \(service)  ·  \(account)")
     identity.frame = NSRect(x: 22, y: expandedAuthCard ? 214 : 144, width: 470, height: 18)
     identity.font = .systemFont(ofSize: 13)
-    identity.textColor = NSColor(calibratedRed: 0.65, green: 0.83, blue: 0.9, alpha: 1)
+    identity.textColor = textColor.withAlphaComponent(0.78)
     card.addSubview(identity)
 }
 
 let action = NSTextField(wrappingLabelWithString: actionText)
 action.frame = NSRect(x: 22, y: expandedAuthCard ? 130 : recommendation == nil ? 58 : 78, width: 468, height: expandedAuthCard ? 66 : recommendation == nil ? 70 : 50)
 action.font = .systemFont(ofSize: 15)
-action.textColor = NSColor(calibratedWhite: 0.88, alpha: 1)
+action.textColor = textColor.withAlphaComponent(0.9)
 action.maximumNumberOfLines = 3
 card.addSubview(action)
 actionLabel = action
@@ -357,6 +393,7 @@ if expandedAuthCard {
         openLink.frame = NSRect(x: 22, y: 54, width: 220, height: 30)
         openLink.bezelStyle = .rounded
         card.addSubview(openLink)
+        styleButton(openLink, prominent: true)
         authLinkButton = openLink
     }
     if reissueAvailableAt > 0 {
@@ -364,6 +401,7 @@ if expandedAuthCard {
         reissue.frame = NSRect(x: 258, y: 54, width: 240, height: 30)
         reissue.bezelStyle = .rounded
         card.addSubview(reissue)
+        styleButton(reissue)
         reissueButton = reissue
     }
     refreshAuthControls()
@@ -378,22 +416,26 @@ card.addGestureRecognizer(cardClick)
 let sound = NSButton(title: soundEnabled ? "소리 끄기" : "소리 켜기", target: actions, action: #selector(AlertActions.toggleSound(_:)))
 sound.frame = NSRect(x: 20, y: 16, width: 104, height: 28)
 sound.bezelStyle = .rounded
+styleButton(sound)
 card.addSubview(sound)
 let pause = NSButton(title: "24시간 중지", target: actions, action: #selector(AlertActions.pauseForDay(_:)))
 pause.frame = NSRect(x: 136, y: 16, width: 140, height: 28)
 pause.bezelStyle = .rounded
+styleButton(pause)
 card.addSubview(pause)
 
 if canOpenChat {
     let open = NSButton(title: "채팅 열기", target: actions, action: #selector(AlertActions.openChat(_:)))
     open.frame = NSRect(x: 300, y: 16, width: 96, height: 28)
     open.bezelStyle = .rounded
+    styleButton(open)
     card.addSubview(open)
 }
 
 let done = NSButton(title: "확인", target: actions, action: #selector(AlertActions.acknowledge(_:)))
 done.frame = NSRect(x: 420, y: 16, width: 76, height: 28)
 done.bezelStyle = .rounded
+styleButton(done, prominent: true)
 card.addSubview(done)
 
 DispatchQueue.main.async {

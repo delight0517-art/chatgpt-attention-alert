@@ -9,6 +9,7 @@ stack_index="$config/stack-index"
 pause_until="$config/pause-until"
 recommendations_pref="$config/recommendations"
 recommendation_state="$config/recommendation-state"
+colors_pref="$config/colors"
 mkdir -p "$config"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -18,7 +19,27 @@ Usage:
   chatgpt-attention-alert --sound on|off|toggle
   chatgpt-attention-alert --sound-file <file.wav|default>
   chatgpt-attention-alert --recommendations on|off
+  chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB>
+  chatgpt-attention-alert --color reset
 USAGE
+  exit 0
+fi
+
+if [[ "${1:-}" == "--color" ]]; then
+  role=${2:-}
+  color=${3:-}
+  if [[ "$role" == "reset" && -z "$color" ]]; then
+    rm -f "$colors_pref"
+    exit 0
+  fi
+  case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB> | reset' >&2; exit 2 ;; esac
+  if [[ ! "$color" =~ '^#[[:xdigit:]]{6}$' ]]; then print 'Color must be a hex value like #33DDF2.' >&2; exit 2; fi
+  touch "$colors_pref"
+  chmod 600 "$colors_pref"
+  tmp="$colors_pref.tmp.$$"
+  awk -F= -v key="$role" -v value="$color" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$colors_pref"
   exit 0
 fi
 
@@ -112,4 +133,4 @@ if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
 recommendations=on
 if [[ -r "$recommendations_pref" ]]; then recommendations=$(<"$recommendations_pref"); fi
 [[ "$recommendations" == "off" ]] || recommendations=on
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" >/dev/null 2>&1 </dev/null &!
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" "$colors_pref" >/dev/null 2>&1 </dev/null &!

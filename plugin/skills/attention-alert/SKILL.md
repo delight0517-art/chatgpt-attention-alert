@@ -16,6 +16,21 @@ When this local desktop task cannot continue until the user responds or acts, sh
 7. The card stays visible until the user acknowledges it. **요청 페이지 열기** opens the supplied page; the separate chat action opens the supplied conversation. The sound and acknowledge buttons keep their own actions. A sound plays only if an HTTPS ChatGPT conversation URL is supplied; the helper opens that chat before playing the sound.
 8. If the active chat URL is unavailable, do not guess it. Show the title and action silently, without a chat-opening action.
 
+## Alert colors
+
+When the user asks to customize this companion's colors, update its saved palette with the installed macOS command. Agents may run this local settings command only in response to the user's color request; do not infer a preference from unrelated messages.
+
+```sh
+~/.local/bin/chatgpt-attention-alert --color accent '#7C5CFF'
+~/.local/bin/chatgpt-attention-alert --color background '#172033'
+~/.local/bin/chatgpt-attention-alert --color text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --color button '#293B58'
+~/.local/bin/chatgpt-attention-alert --color button-text '#FFFFFF'
+~/.local/bin/chatgpt-attention-alert --color reset
+```
+
+Supported roles are `background`, `accent`, `text`, `button`, and `button-text`; each value must be `#RRGGBB`. The palette is stored locally in the user's config directory, applies to newly opened alerts, and can be reset to the built-in defaults. The alert renders button backgrounds and labels with explicit colors so system dark mode cannot make the text disappear.
+
 ## Authentication handoff
 
 For a sign-in, OAuth, MFA, device verification, or access-approval step, identify the service and exact account before raising the alert. Keep passwords, recovery secrets, and tokens out of all alerts. If the account is not confirmed, display `계정 확인 필요` rather than guessing.
