@@ -199,6 +199,25 @@ let actionURL: URL? = {
           components.user == nil, components.password == nil else { return nil }
     return components.url
 }()
+// Prefer the signed Easy Paster App Store app when its URL scheme is registered.
+// The open-source companion remains usable on its own when the app is absent.
+if let probeURL = URL(string: "easypaster://needs-you"),
+   let handlerURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL),
+   Bundle(url: handlerURL)?.bundleIdentifier == "app.flowguardian.mac" {
+    var handoff = URLComponents()
+    handoff.scheme = "easypaster"
+    handoff.host = "needs-you"
+    handoff.queryItems = [
+        URLQueryItem(name: "title", value: chatTitle),
+        URLQueryItem(name: "message", value: actionText),
+        URLQueryItem(name: "chatURL", value: chatURL),
+        URLQueryItem(name: "actionURL", value: actionURL?.absoluteString ?? ""),
+        URLQueryItem(name: "service", value: authService),
+        URLQueryItem(name: "account", value: authAccount),
+        URLQueryItem(name: "threadID", value: resumeThreadID)
+    ]
+    if let url = handoff.url, NSWorkspace.shared.open(url) { exit(0) }
+}
 let reissueAvailableAt = retryAfter > 0 ? retryAfter : linkExpiresAt
 let hasAuthControls = !actionURLValue.isEmpty || reissueAvailableAt > 0
 

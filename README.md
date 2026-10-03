@@ -149,6 +149,10 @@ When another window covers the alert, open the Windows notification-area icon's 
 
 Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` on Windows. For safety, automatic opening accepts only `chatgpt.com` and `chat.openai.com`. Clicking the card background, title, or message opens that conversation without dismissing the alert. When the user must open a web page to act, the agent can pass its verified HTTPS URL with `--action-url` on macOS or `-ActionUrl` on Windows; the alert displays **요청 페이지 열기** as a separate button. The agent should also include the link in its chat response. Use the macOS menu-bar or Windows notification-area **GPT 알리미 열어줘** action to restore a covered alert. A reissue button is enabled only when an expiry or provider-supplied retry time is passed in; the companion cannot independently detect a provider's rate-limit state. The companion does not guess links from a title.
 
+## Easy Paster App Store integration
+
+On macOS, when Easy Paster (bundle ID `app.flowguardian.mac`) is installed and registered, the open-source companion forwards new alerts to its `easypaster://needs-you` handler. The app provides the persistent alert list and settings; the companion remains independently usable and still displays its own alert when Easy Paster is unavailable. The GPT Tool code remains in this MIT-licensed repository. The App Store app bundles its alert UI and does not download executable code. In the App Store app, Resume copies the request summary and opens the related chat; direct CLI queueing remains available from the open-source companion.
+
 ## Project layout
 
 - `plugin/`: portable plugin manifest, local marketplace entry, and skill.
