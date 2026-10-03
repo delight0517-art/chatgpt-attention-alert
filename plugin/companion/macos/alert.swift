@@ -103,6 +103,7 @@ let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLV
 var authStatusIsActionResult = false
 
 func showActionStatus(_ message: String) {
+    actionLabel?.stringValue = actionText
     if let authStatusLabel {
         authStatusLabel.stringValue = message
         authStatusIsActionResult = true
