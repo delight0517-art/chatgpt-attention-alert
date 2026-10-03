@@ -19,10 +19,10 @@ var actionLabel: NSTextField?
 var authStatusLabel: NSTextField?
 var authLinkButton: NSButton?
 var reissueButton: NSButton?
-let loginURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13] : ""
+let actionURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13] : ""
 let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.arguments[14]) ?? 0 : 0
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
-let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !loginURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
+let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
 var authStatusIsActionResult = false
 
 struct LocalRecommendation {
@@ -96,23 +96,23 @@ let canOpenChat: Bool = {
           ["chatgpt.com", "chat.openai.com"].contains(components.host ?? "") else { return false }
     return true
 }()
-let loginURL: URL? = {
-    guard let components = URLComponents(string: loginURLValue),
+let actionURL: URL? = {
+    guard let components = URLComponents(string: actionURLValue),
           components.scheme == "https", components.host != nil,
           components.user == nil, components.password == nil else { return nil }
     return components.url
 }()
 let reissueAvailableAt = retryAfter > 0 ? retryAfter : linkExpiresAt
-let hasAuthControls = !loginURLValue.isEmpty || reissueAvailableAt > 0
+let hasAuthControls = !actionURLValue.isEmpty || reissueAvailableAt > 0
 
 func refreshAuthControls() {
     guard let authStatusLabel else { return }
     guard !authStatusIsActionResult else { return }
     let now = Date().timeIntervalSince1970
-    authLinkButton?.isEnabled = loginURL != nil && (linkExpiresAt == 0 || now < linkExpiresAt)
+    authLinkButton?.isEnabled = actionURL != nil && (linkExpiresAt == 0 || now < linkExpiresAt)
     reissueButton?.isEnabled = reissueAvailableAt > 0 && now >= reissueAvailableAt
-    if !loginURLValue.isEmpty && loginURL == nil {
-        authStatusLabel.stringValue = "보안을 위해 HTTPS 로그인 주소만 열 수 있습니다."
+    if !actionURLValue.isEmpty && actionURL == nil {
+        authStatusLabel.stringValue = "보안을 위해 HTTPS 요청 주소만 열 수 있습니다."
     } else if retryAfter > now {
         let seconds = Int(retryAfter - now)
         authStatusLabel.stringValue = "요청 제한 중 · 새 링크 요청까지 \(seconds / 60)분 \(seconds % 60)초"
@@ -126,21 +126,21 @@ func refreshAuthControls() {
     } else if linkExpiresAt > 0 {
         authStatusLabel.stringValue = "인증 링크가 만료되었습니다. 새 링크를 요청하세요."
     } else {
-        authStatusLabel.stringValue = "인증 링크를 열고, 이 알림은 확인 전까지 남겨 두세요."
+        authStatusLabel.stringValue = "요청 페이지를 열고, 이 알림은 확인 전까지 남겨 두세요."
     }
 }
 
 final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     let pauseUntilPath: String
     let recommendationURL: URL?
-    let loginURL: URL?
+    let actionURL: URL?
     let linkExpiresAt: TimeInterval
     let reissueAvailableAt: TimeInterval
     let alertWindow: NSWindow
-    init(pauseUntilPath: String, recommendationURL: URL?, loginURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow) {
+    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow) {
         self.pauseUntilPath = pauseUntilPath
         self.recommendationURL = recommendationURL
-        self.loginURL = loginURL
+        self.actionURL = actionURL
         self.linkExpiresAt = linkExpiresAt
         self.reissueAvailableAt = reissueAvailableAt
         self.alertWindow = alertWindow
@@ -157,19 +157,19 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         alertWindow.orderFrontRegardless()
     }
 
-    @objc func openLoginLink(_ sender: Any?) {
-        guard let loginURL else { return }
+    @objc func openActionLink(_ sender: Any?) {
+        guard let actionURL else { return }
         guard linkExpiresAt == 0 || Date().timeIntervalSince1970 < linkExpiresAt else {
             refreshAuthControls()
             return
         }
         NSApp.windows.forEach { $0.level = .normal }
-        guard NSWorkspace.shared.open(loginURL) else {
-            authStatusLabel?.stringValue = "인증 페이지를 열지 못했습니다. 다시 눌러 주세요."
+        guard NSWorkspace.shared.open(actionURL) else {
+            authStatusLabel?.stringValue = "요청 페이지를 열지 못했습니다. 다시 눌러 주세요."
             NSSound.beep()
             return
         }
-        authStatusLabel?.stringValue = "인증 페이지를 열었습니다. 이 알림은 계속 남아 있습니다."
+        authStatusLabel?.stringValue = "요청 페이지를 열었습니다. 이 알림은 계속 남아 있습니다."
         authStatusIsActionResult = true
     }
 
@@ -282,7 +282,7 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
-let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, loginURL: loginURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window)
+let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window)
 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 statusItem.button?.title = "GPT"
 let statusMenu = NSMenu()
@@ -352,8 +352,8 @@ if expandedAuthCard {
     status.textColor = NSColor(calibratedRed: 0.55, green: 0.9, blue: 0.76, alpha: 1)
     card.addSubview(status)
     authStatusLabel = status
-    if loginURL != nil {
-        let openLink = NSButton(title: "로그인 링크 열기", target: actions, action: #selector(AlertActions.openLoginLink(_:)))
+    if actionURL != nil {
+        let openLink = NSButton(title: "요청 페이지 열기", target: actions, action: #selector(AlertActions.openActionLink(_:)))
         openLink.frame = NSRect(x: 22, y: 54, width: 220, height: 30)
         openLink.bezelStyle = .rounded
         card.addSubview(openLink)

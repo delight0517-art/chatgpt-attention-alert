@@ -14,7 +14,7 @@ mkdir -p "$config"
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'USAGE'
 Usage:
-  chatgpt-attention-alert [--auth <service> <account>] [--login-url <https-url>] [--expires-at <unix-seconds>] [--retry-after <unix-seconds>] <chat-title> <message> [chat-url]
+  chatgpt-attention-alert [--auth <service> <account>] [--action-url <https-url>] [--expires-at <unix-seconds>] [--retry-after <unix-seconds>] <chat-title> <message> [chat-url]
   chatgpt-attention-alert --sound on|off|toggle
   chatgpt-attention-alert --sound-file <file.wav|default>
   chatgpt-attention-alert --recommendations on|off
@@ -69,7 +69,7 @@ retry_after=0
 while [[ "${1:-}" == --* ]]; do
   case "$1" in
     --auth) auth_service=${2:-}; auth_account=${3:-}; shift 3 ;;
-    --login-url) login_url=${2:-}; shift 2 ;;
+    --action-url|--login-url) login_url=${2:-}; shift 2 ;;
     --expires-at) link_expires_at=${2:-}; shift 2 ;;
     --retry-after) retry_after=${2:-}; shift 2 ;;
     *) break ;;
