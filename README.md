@@ -31,6 +31,7 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Can show at most one small developer-service recommendation per calendar month when an alert title/action matches a listed topic. Authentication and sensitive-code alerts are excluded.
 - Recommendation matching uses local keyword rules on the alert title and action. It makes no AI/model request, spends zero AI tokens on recommendations, and does not save or send the alert text. The card discloses this in small text; use `--recommendations off` on macOS or `-Recommendations off` on Windows to disable it.
 - Offers an **Open chat** button only when a chat URL is provided.
+- Lets the agent include a verified HTTPS action page in the alert with **요청 페이지 열기**, separate from the chat-opening action.
 - Adds a macOS menu-bar and Windows notification-area **GPT 알리미 열어줘** action to restore an alert after another window or browser covers it.
 - Runs locally and sends no alert content to a server.
 
@@ -84,9 +85,9 @@ Try it:
 ~/.local/bin/chatgpt-attention-alert --auth "GitHub" "delight0517" "Current chat" "Complete sign-in" "https://chatgpt.com/c/..."
 ```
 
-For another provider, replace `GitHub` and the account with the exact service and account. To show a provider login page button, add `--login-url "https://github.com/login/device"`. If the provider reports an expiry or rate-limit reset time, add `--expires-at <unix-seconds>` and/or `--retry-after <unix-seconds>`. The card keeps the link available until its reported expiry. Once a retry limit ends, **새 인증 링크 요청** copies a fresh-request message and opens the conversation; paste and send that message to get a new link. The alert stays open until acknowledged. Use the macOS menu-bar **GPT** menu to bring it forward again.
+For another provider, replace `GitHub` and the account with the exact service and account. Add `--action-url "https://github.com/login/device"` to show the provider page button (**--login-url** remains an alias). If the provider reports an expiry or rate-limit reset time, add `--expires-at <unix-seconds>` and/or `--retry-after <unix-seconds>`. The card keeps the link available until its reported expiry. Once a retry limit ends, **새 인증 링크 요청** copies a fresh-request message and opens the conversation; paste and send that message to get a new link. The alert stays open until acknowledged. Use the macOS menu-bar **GPT** menu to bring it forward again.
 
-Windows accepts `-AuthService "<service>" -AuthAccount "<account>" -LoginUrl "<https-url>" -ExpiresAt <unix-seconds> -RetryAfter <unix-seconds>` with its normal alert parameters. Keep passwords, one-time codes, and tokens out of the URL and alert.
+Windows accepts `-AuthService "<service>" -AuthAccount "<account>" -ActionUrl "<https-url>" -ExpiresAt <unix-seconds> -RetryAfter <unix-seconds>` with its normal alert parameters. `-LoginUrl` remains an alias. Keep passwords, one-time codes, and tokens out of the URL and alert.
 
 ### Windows
 
@@ -114,7 +115,7 @@ When another window covers the alert, open the Windows notification-area icon's 
 
 ## Open a specific chat
 
-Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` on Windows. For safety, automatic opening accepts only `chatgpt.com` and `chat.openai.com`. Clicking the card background, title, or message opens that conversation without dismissing the alert. Authentication alerts can show a separate **로그인 링크 열기** button for a supplied HTTPS provider page; opening it brings the browser forward and keeps the alert available. Use the macOS menu-bar or Windows notification-area **GPT 알리미 열어줘** action to restore a covered alert. A reissue button is enabled only when an expiry or provider-supplied retry time is passed in; the companion cannot independently detect a provider's rate-limit state. The companion does not guess links from a title.
+Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` on Windows. For safety, automatic opening accepts only `chatgpt.com` and `chat.openai.com`. Clicking the card background, title, or message opens that conversation without dismissing the alert. When the user must open a web page to act, the agent can pass its verified HTTPS URL with `--action-url` on macOS or `-ActionUrl` on Windows; the alert displays **요청 페이지 열기** as a separate button. The agent should also include the link in its chat response. Use the macOS menu-bar or Windows notification-area **GPT 알리미 열어줘** action to restore a covered alert. A reissue button is enabled only when an expiry or provider-supplied retry time is passed in; the companion cannot independently detect a provider's rate-limit state. The companion does not guess links from a title.
 
 ## Project layout
 
