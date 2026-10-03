@@ -280,6 +280,14 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         alertWindow.orderFrontRegardless()
     }
 
+    private func moveAlertBehindDestination() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            guard self.alertWindow.isVisible else { return }
+            self.alertWindow.level = .normal
+            self.alertWindow.orderBack(nil)
+        }
+    }
+
     @objc func openAppearanceSettings(_ sender: Any?) {
         guard !appearanceSettingsPath.isEmpty else { return }
         let process = Process()
@@ -302,6 +310,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         }
         authStatusLabel?.stringValue = "요청 페이지를 열었습니다. 이 알림은 계속 남아 있습니다."
         authStatusIsActionResult = true
+        moveAlertBehindDestination()
     }
 
     @objc func requestNewLoginLink(_ sender: Any?) {
@@ -311,7 +320,7 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         let message = "\(service) 계정 \(account)의 이전 인증 링크/코드가 만료되었거나 재요청 제한이 끝났습니다. 이전 값은 재사용하지 말고 새 인증 링크 또는 코드를 발급해 주세요."
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(message, forType: .string)
-        if canOpenChat, let url = URL(string: chatURL) { NSWorkspace.shared.open(url) }
+        if canOpenChat, let url = URL(string: chatURL), NSWorkspace.shared.open(url) { moveAlertBehindDestination() }
         authStatusLabel?.stringValue = "새 인증 요청 문구를 복사했습니다. 대화창에서 붙여넣어 전송하세요."
         authStatusIsActionResult = true
     }
@@ -342,7 +351,8 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
             NSSound.beep()
             return
         }
-        showActionStatus("대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다.")
+        showActionStatus("채팅을 열었습니다. 알림은 메뉴 막대 GPT에서 다시 열 수 있습니다.")
+        moveAlertBehindDestination()
     }
 
     @objc func resume(_ sender: NSButton) {
@@ -368,8 +378,10 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
                 DispatchQueue.main.async {
                     sender.isEnabled = true
                     if process.terminationStatus == 0 {
-                        showActionStatus(tr("재개 요청을 보냈습니다. Codex가 기존 작업을 확인합니다.", "Resume request sent. Codex will check the existing task.", "再開リクエストを送信しました。Codex が既存の作業を確認します。", "已发送继续请求。Codex 将检查现有任务。"))
-                        if let url = URL(string: "codex://threads/\(self.resumeThreadID)") { NSWorkspace.shared.open(url) }
+                        let openedThread = URL(string: "codex://threads/\(self.resumeThreadID)").map { NSWorkspace.shared.open($0) } ?? false
+                        let sent = tr("재개 요청을 보냈습니다. Codex가 기존 작업을 확인합니다.", "Resume request sent. Codex will check the existing task.", "再開リクエストを送信しました。Codex が既存の作業を確認します。", "已发送继续请求。Codex 将检查现有任务。")
+                        showActionStatus(openedThread ? sent : sent + " Codex 대화를 열지 못했습니다.")
+                        if openedThread { self.moveAlertBehindDestination() }
                     } else {
                         showActionStatus(tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。"))
                         NSSound.beep()
