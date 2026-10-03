@@ -18,6 +18,7 @@ class DriveStateTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.state = Path(self.temp.name) / "state-v1"
+        self.state.mkdir()
         self.env = {**os.environ, "CHATGPT_ALERT_SHARED_STATE_DIR": str(self.state)}
 
     def run_cli(self, *args, configured=True):
@@ -28,24 +29,44 @@ class DriveStateTests(unittest.TestCase):
         self.assertEqual(self.run_cli("set", "sound", "off").returncode, 0)
         self.assertEqual(self.run_cli("set", "sound", "on").returncode, 0)
         self.assertEqual(self.run_cli("set", KEY, "in_progress").returncode, 0)
+        self.assertEqual(self.run_cli("get", "sound").stdout.strip(), "on")
         result = self.run_cli("list")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), {"sound": "on", KEY: "in_progress"})
-        self.assertEqual(len(list((self.state / "events").glob("*.json"))), 3)
+        events = [json.loads(path.read_text(encoding="utf-8")) for path in (self.state / "events").glob("*.json")]
+        self.assertEqual(len(events), 3)
+        versions = {(event["key"], event.get("logical_version", 1)) for event in events}
+        self.assertEqual(versions, {("sound", 1), ("sound", 2), (KEY, 1)})
 
-    def test_newest_timestamp_wins_and_uuid_breaks_ties(self):
+    def test_logical_version_wins_and_uuid_breaks_ties(self):
         events = self.state / "events"
         events.mkdir(parents=True)
         fixtures = [
-            {"schema_version": 1, "event_id": "b", "key": "sound", "value": "off", "updated_at": "2026-01-01T00:00:00+00:00"},
-            {"schema_version": 1, "event_id": "a", "key": "sound", "value": "on", "updated_at": "2026-01-01T00:00:00+00:00"},
-            {"schema_version": 1, "event_id": "c", "key": "sound", "value": "off", "updated_at": "2025-12-31T23:59:59+00:00"},
+            {"schema_version": 1, "event_id": "00000000-0000-4000-8000-000000000002", "key": "sound", "value": "off", "logical_version": 3, "updated_at": "2026-01-01T00:00:00+00:00"},
+            {"schema_version": 1, "event_id": "00000000-0000-4000-8000-000000000001", "key": "sound", "value": "on", "logical_version": 3, "updated_at": "2026-01-02T00:00:00+00:00"},
+            {"schema_version": 1, "event_id": "00000000-0000-4000-8000-000000000003", "key": "sound", "value": "on", "updated_at": "2026-01-03T00:00:00+00:00"},
         ]
         for event in fixtures:
             (events / f"{event['event_id']}.json").write_text(json.dumps(event), encoding="utf-8")
         result = self.run_cli("list")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout), {"sound": "off"})
+
+    def test_legacy_timestamp_order_is_preserved_until_first_versioned_write(self):
+        events = self.state / "events"
+        events.mkdir(parents=True)
+        fixtures = [
+            {"schema_version": 1, "event_id": "00000000-0000-4000-8000-000000000001", "key": "sound", "value": "on", "updated_at": "2026-01-02T00:00:00+00:00"},
+            {"schema_version": 1, "event_id": "00000000-0000-4000-8000-000000000002", "key": "sound", "value": "off", "updated_at": "2026-01-01T00:00:00+00:00"},
+        ]
+        for event in fixtures:
+            (events / f"{event['event_id']}.json").write_text(json.dumps(event), encoding="utf-8")
+        self.assertEqual(self.run_cli("get", "sound").stdout.strip(), "on")
+        self.assertEqual(self.run_cli("set", "sound", "off").returncode, 0)
+        result = self.run_cli("list")
+        self.assertEqual(json.loads(result.stdout), {"sound": "off"})
+        versions = [json.loads(path.read_text(encoding="utf-8")).get("logical_version") for path in events.glob("*.json")]
+        self.assertEqual(sum(version is not None for version in versions), 1)
 
     def test_invalid_updates_and_unconfigured_state_are_rejected(self):
         self.assertNotEqual(self.run_cli("set", "sound", "maybe").returncode, 0)

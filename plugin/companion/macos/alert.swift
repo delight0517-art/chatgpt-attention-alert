@@ -22,6 +22,9 @@ var reissueButton: NSButton?
 let actionURLValue = CommandLine.arguments.count > 13 ? CommandLine.arguments[13] : ""
 let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.arguments[14]) ?? 0 : 0
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
+let sharedStateHelperPath = CommandLine.arguments.count > 17 ? CommandLine.arguments[17] : ""
+let sharedStateDirectory = CommandLine.arguments.count > 18 ? CommandLine.arguments[18] : ""
+let wrapperPath = CommandLine.arguments.count > 19 ? CommandLine.arguments[19] : ""
 let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
 var authStatusIsActionResult = false
 
@@ -137,13 +140,19 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     let linkExpiresAt: TimeInterval
     let reissueAvailableAt: TimeInterval
     let alertWindow: NSWindow
-    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow) {
+    let sharedStateHelperPath: String
+    let sharedStateDirectory: String
+    let wrapperPath: String
+    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow, sharedStateHelperPath: String, sharedStateDirectory: String, wrapperPath: String) {
         self.pauseUntilPath = pauseUntilPath
         self.recommendationURL = recommendationURL
         self.actionURL = actionURL
         self.linkExpiresAt = linkExpiresAt
         self.reissueAvailableAt = reissueAvailableAt
         self.alertWindow = alertWindow
+        self.sharedStateHelperPath = sharedStateHelperPath
+        self.sharedStateDirectory = sharedStateDirectory
+        self.wrapperPath = wrapperPath
     }
 
     @objc func acknowledge(_ sender: Any?) {
@@ -197,6 +206,37 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         if !preferencePath.isEmpty {
             try? (soundEnabled ? "on\n" : "off\n").write(toFile: preferencePath, atomically: true, encoding: .utf8)
         }
+        guard !sharedStateDirectory.isEmpty, !sharedStateHelperPath.isEmpty else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["python3", sharedStateHelperPath, "set", "sound", soundEnabled ? "on" : "off"]
+        var environment = ProcessInfo.processInfo.environment
+        environment["CHATGPT_ALERT_SHARED_STATE_DIR"] = sharedStateDirectory
+        process.environment = environment
+        do {
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus != 0 { recordSharedStateUnavailable() }
+            else { recordSharedStateAvailable() }
+        } catch {
+            recordSharedStateUnavailable()
+        }
+    }
+
+    private func recordSharedStateUnavailable() {
+        runWrapperHealthCommand("--record-shared-state-unavailable")
+    }
+
+    private func recordSharedStateAvailable() {
+        runWrapperHealthCommand("--record-shared-state-available")
+    }
+
+    private func runWrapperHealthCommand(_ argument: String) {
+        guard !wrapperPath.isEmpty else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = [wrapperPath, argument]
+        try? process.run()
     }
 
     @objc func openChat(_ sender: Any?) {
@@ -282,7 +322,7 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
-let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window)
+let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window, sharedStateHelperPath: sharedStateHelperPath, sharedStateDirectory: sharedStateDirectory, wrapperPath: wrapperPath)
 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 statusItem.button?.title = "GPT"
 let statusMenu = NSMenu()

@@ -16,6 +16,14 @@ When this local desktop task cannot continue until the user responds or acts, sh
 7. The card stays visible until the user acknowledges it. **요청 페이지 열기** opens the supplied page; the separate chat action opens the supplied conversation. The sound and acknowledge buttons keep their own actions. A sound plays only if an HTTPS ChatGPT conversation URL is supplied; the helper opens that chat before playing the sound.
 8. If the active chat URL is unavailable, do not guess it. Show the title and action silently, without a chat-opening action.
 
+## Optional shared Drive state (macOS first)
+
+Use only a folder already synchronized by Google Drive for Desktop. Set it locally on each Mac with `~/.local/bin/chatgpt-attention-alert --shared-state-dir "/path/to/Drive/state-v1"`; use `--shared-state-dir off` to disable. The path is machine-local and is never shared. The Mac companion reads the newest shared sound/recommendation preference when each alert starts, and saves changes from its controls. It also accepts opaque UUID work-status updates: `--work-status <UUID> todo|in_progress|done`, and `--work-status-list` to view the merged status map.
+
+Each update is a new JSON event under `events/`; timestamp orders updates and event UUID deterministically breaks ties. Do not use names or alert/chat text as work IDs or values. The allowlist excludes alert content, chat URLs, login links, account names, student details, custom sound paths, and recommendation history. The companion continues with local preferences if shared state is unavailable and shows one macOS notification for each outage episode; a successful later read clears the one-shot guard. This check runs when a command or alert is used, not as a background Drive monitor. Google Drive for Desktop handles its own sign-in/approval; the alert does not request credentials.
+
+Windows support for this schema is pending. CI syntax results do not establish Windows parity or cloud upload completion. Do not describe shared state as available on a PC until its Drive for Desktop folder is configured and a cross-device readback is observed.
+
 ## Authentication handoff
 
 For a sign-in, OAuth, MFA, device verification, or access-approval step, identify the service and the exact account before raising the alert. Keep authentication codes, passwords, and recovery secrets out of the alert. If the account is not confirmed, display `계정 확인 필요` rather than guessing.

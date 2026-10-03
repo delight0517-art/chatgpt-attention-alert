@@ -27,6 +27,7 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Plays the alert sound after the card appears; `×` closes that alert, and clicking the card opens its conversation.
 - Adds a **24시간 중지** button that suppresses new alerts for 24 hours.
 - Lets the user toggle sound from the card or command line.
+- On macOS, can share allowlisted sound/recommendation settings and UUID-keyed work-status values through a user-configured Google Drive for Desktop folder. Windows parity is pending.
 - Lets the user choose a custom `.wav` alert sound on macOS and Windows, or restore the system sound.
 - Can show at most one small developer-service recommendation per calendar month when an alert title/action matches a listed topic. Authentication and sensitive-code alerts are excluded.
 - Recommendation matching uses local keyword rules on the alert title and action. It makes no AI/model request, spends zero AI tokens on recommendations, and does not save or send the alert text. The card discloses this in small text; use `--recommendations off` on macOS or `-Recommendations off` on Windows to disable it.
@@ -40,7 +41,7 @@ The public website has separate Korean landing pages for persistent alerts and a
 ## Requirements and limits
 
 - ChatGPT desktop or Codex desktop for the local plugin workflow.
-- macOS: Swift toolchain included with Xcode Command Line Tools.
+- macOS: Swift toolchain included with Xcode Command Line Tools. Optional Drive-shared settings also require `python3`.
 - Windows: Windows PowerShell 5.1 or PowerShell 7 with Windows Forms available.
 
 The plugin provides reusable agent instructions; the native companion must also be installed. A plugin running only in ChatGPT on the web cannot play sound or display a native window on the user's computer. Public Plugin Directory publication also requires a reachable HTTPS MCP service and OpenAI review; this repository is a local desktop package, not a published directory listing.
@@ -82,10 +83,15 @@ Try it:
 ~/.local/bin/chatgpt-attention-alert --sound-file /path/to/alert.wav
 ~/.local/bin/chatgpt-attention-alert --sound-file default
 ~/.local/bin/chatgpt-attention-alert --recommendations off
+~/.local/bin/chatgpt-attention-alert --shared-state-dir "/path/to/Google Drive/My Drive/ChatGPT Attention Alert Shared State/state-v1"
+~/.local/bin/chatgpt-attention-alert --work-status 550e8400-e29b-41d4-a716-446655440000 in_progress
+~/.local/bin/chatgpt-attention-alert --work-status-list
 ~/.local/bin/chatgpt-attention-alert --auth "GitHub" "delight0517" "Current chat" "Complete sign-in" "https://chatgpt.com/c/..."
 ```
 
 For another provider, replace `GitHub` and the account with the exact service and account. Add `--action-url "https://github.com/login/device"` to show the provider page button (**--login-url** remains an alias). If the provider reports an expiry or rate-limit reset time, add `--expires-at <unix-seconds>` and/or `--retry-after <unix-seconds>`. The card keeps the link available until its reported expiry. Once a retry limit ends, **새 인증 링크 요청** copies a fresh-request message and opens the conversation; paste and send that message to get a new link. The alert stays open until acknowledged. Use the macOS menu-bar **GPT** menu to bring it forward again.
+
+The prepared Drive folder is `My Drive/ChatGPT Attention Alert Shared State/state-v1`. Sign in to the same Drive account on both PCs, then configure the local synced path with `--shared-state-dir`; paths differ by computer. The Mac helper stores immutable JSON events and merges by observed per-key logical version, then event UUID for concurrent ties. Only sound/recommendation on-off preferences and opaque UUID work-status values are shared. Alert content, chat/login links, account names, student data, custom sound paths, and recommendation history are excluded. If the configured folder cannot be read or written, the Mac companion uses local preferences and shows one Notification Center notice per filesystem-access failure episode when an alert or command runs; it does not run a background monitor. Google Drive for Desktop owns sign-in and approval; the companion cannot reliably detect an expired session while DriveFS still accepts local writes, and local DriveFS access does not prove cloud upload completion. See [the shared-state design](plugin/companion/macos/DRIVE_SHARED_STATE.md).
 
 Windows accepts `-AuthService "<service>" -AuthAccount "<account>" -ActionUrl "<https-url>" -ExpiresAt <unix-seconds> -RetryAfter <unix-seconds>` with its normal alert parameters. `-LoginUrl` remains an alias. Keep passwords, one-time codes, and tokens out of the URL and alert.
 
