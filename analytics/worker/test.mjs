@@ -57,6 +57,12 @@ const refusedPayload = await worker.fetch(request("/event", "POST", { ...valid, 
 assert.equal(refusedPayload.status, 400);
 const acceptedLocale = await worker.fetch(request("/event", "POST", { ...valid, locale: "en" }), env);
 assert.equal(acceptedLocale.status, 202);
+for (const [page, locale] of [["home-en", "en"], ["home-ja", "ja"], ["home-zh-hans", "zh-hans"]]) {
+  const acceptedLocalizedPage = await worker.fetch(request("/event", "POST", { ...valid, page, locale, variant: "default" }), env);
+  assert.equal(acceptedLocalizedPage.status, 202, `${page}/${locale} should be accepted`);
+}
+const refusedLocale = await worker.fetch(request("/event", "POST", { ...valid, locale: "ko-KR" }), env);
+assert.equal(refusedLocale.status, 400);
 const refusedVariant = await worker.fetch(request("/event", "POST", { ...valid, variant: "delight0517" }), env);
 assert.equal(refusedVariant.status, 400);
 const summary = await worker.fetch(request("/summary?period=all", "GET", undefined, ""), env);
