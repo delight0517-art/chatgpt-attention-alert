@@ -70,6 +70,34 @@ let accentColor = color("accent", fallback: "#61EBFF")
 let textColor = color("text", fallback: "#FFFFFF")
 let buttonColor = color("button", fallback: "#24405A")
 let buttonTextColor = color("button-text", fallback: "#FFFFFF")
+
+func composite(_ foreground: NSColor, over background: NSColor, opacity: CGFloat) -> NSColor {
+    let fg = foreground.usingColorSpace(.deviceRGB) ?? .white
+    let bg = background.usingColorSpace(.deviceRGB) ?? .black
+    let amount = max(0, min(1, opacity))
+    return NSColor(calibratedRed: fg.redComponent * amount + bg.redComponent * (1 - amount), green: fg.greenComponent * amount + bg.greenComponent * (1 - amount), blue: fg.blueComponent * amount + bg.blueComponent * (1 - amount), alpha: 1)
+}
+
+func luminance(_ color: NSColor) -> CGFloat {
+    let rgb = color.usingColorSpace(.deviceRGB) ?? .white
+    func linear(_ value: CGFloat) -> CGFloat { value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4) }
+    return 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+}
+
+func contrast(_ first: NSColor, _ second: NSColor) -> CGFloat {
+    let values = [luminance(first), luminance(second)].sorted(by: >)
+    return (values[0] + 0.05) / (values[1] + 0.05)
+}
+
+func readableButtonText(for fill: NSColor, fillOpacity: CGFloat) -> NSColor {
+    let visibleFill = composite(fill, over: backgroundColor, opacity: fillOpacity)
+    let preferredText = composite(buttonTextColor, over: visibleFill, opacity: alpha("button-text"))
+    if contrast(preferredText, visibleFill) >= 4.5 { return buttonTextColor.withAlphaComponent(alpha("button-text")) }
+    let dark = colorFromHex("#102033")
+    let light = NSColor.white
+    return contrast(dark, visibleFill) >= contrast(light, visibleFill) ? dark : light
+}
+
 let hasAuthContext = !authService.isEmpty || !authAccount.isEmpty || !actionURLValue.isEmpty || linkExpiresAt > 0 || retryAfter > 0
 var authStatusIsActionResult = false
 
@@ -79,7 +107,7 @@ func styleButton(_ button: NSButton, prominent: Bool = false) {
     button.layer?.cornerRadius = 8
     let fill = prominent ? accentColor.withAlphaComponent(alpha("accent")) : buttonColor.withAlphaComponent(alpha("button"))
     button.layer?.backgroundColor = fill.cgColor
-    let foreground = (prominent ? color("button-text", fallback: "#102033") : buttonTextColor).withAlphaComponent(alpha("button-text"))
+    let foreground = readableButtonText(for: prominent ? accentColor : buttonColor, fillOpacity: alpha(prominent ? "accent" : "button"))
     button.attributedTitle = NSAttributedString(string: button.title, attributes: [.foregroundColor: foreground, .font: button.font ?? .systemFont(ofSize: 13, weight: .medium)])
     button.contentTintColor = foreground
 }

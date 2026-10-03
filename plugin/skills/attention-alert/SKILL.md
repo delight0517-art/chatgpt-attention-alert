@@ -22,7 +22,7 @@ When this local desktop task cannot continue until the user responds or acts, sh
 When the user asks to customize this companion's colors, update its saved palette with the installed macOS command. Agents may run this local settings command only in response to the user's color request; do not infer a preference from unrelated messages.
 
 Users can open the visual settings from the menu bar **GPT → 색상·투명도 설정…** while an alert is open, or at any time with `~/.local/bin/chatgpt-attention-alert --settings`.
-The appearance window follows the macOS display language in Korean, English, Japanese, or Chinese; other locales use English. The palette file's role names and command options stay language-neutral.
+The appearance window follows the macOS display language in Korean, English, Japanese, or Chinese; other locales use English. It offers quick palettes, native color wells, HEX entry, opacity sliders, and a live preview. Changes stay in preview until saved. The palette file's role names and command options stay language-neutral.
 
 ```sh
 ~/.local/bin/chatgpt-attention-alert --color accent '#7C5CFF'
@@ -39,7 +39,7 @@ The appearance window follows the macOS display language in Korean, English, Jap
 ~/.local/bin/chatgpt-attention-alert --color reset
 ```
 
-Supported roles are `background`, `accent`, `text`, `button`, and `button-text`. Colors use `#RRGGBB`; opacity uses a whole-number percentage from `0` (transparent) to `100` (opaque). Opacity changes only the selected role and is stored locally with the palette. `--opacity reset` restores default opacity while keeping custom colors; `--color reset` restores all built-in colors and opacity. Changes apply to new alerts. The alert renders button backgrounds and labels with explicit colors so system dark mode cannot make the text disappear.
+Supported roles are `background`, `accent`, `text`, `button`, and `button-text`. Colors use `#RRGGBB`; opacity uses a whole-number percentage from `0` (transparent) to `100` (opaque). Opacity changes only the selected role and is stored locally with the palette. `--opacity reset` restores default opacity while keeping custom colors; `--color reset` restores all built-in colors and opacity. Changes apply to new alerts. If the chosen button text would fall below a 4.5:1 contrast ratio against its fill, the companion selects the more readable dark or light text color for that button.
 
 ## Authentication handoff
 

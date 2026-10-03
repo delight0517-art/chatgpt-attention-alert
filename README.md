@@ -80,7 +80,7 @@ Open the visual appearance settings at any time with:
 ~/.local/bin/chatgpt-attention-alert --settings
 ```
 
-While an alert is open, the menu bar **GPT** menu also has **Color & Opacity Settings** (localized to Korean, English, Japanese, or Chinese; other system languages use English). Pick a HEX color and adjust each role's opacity slider, then select **Save**; the next alert uses the changes.
+While an alert is open, the menu bar **GPT** menu also has **Color & Opacity Settings** (localized to Korean, English, Japanese, or Chinese; other system languages use English). Choose a quick palette or click a color swatch to open the macOS color picker; fine-tune with HEX and opacity controls. The live preview updates before you save, and the next alert uses the saved palette. Button labels automatically switch to a high-contrast foreground when a custom color would make them hard to read.
 
 Try it:
 
