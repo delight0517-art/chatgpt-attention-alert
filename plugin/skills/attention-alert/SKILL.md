@@ -11,16 +11,18 @@ When this local desktop task cannot continue until the user responds or acts, sh
 2. If the title is missing, do not play a sound. The companion displays a title-unavailable card silently.
 3. Get the exact current conversation URL from the active chat context when available. Never construct or guess a URL from the title.
 4. If the user must open a specific web page to act, get its exact verified HTTPS URL and pass it as `--action-url "<URL>"` on macOS or `-ActionUrl "<URL>"` on Windows in the same alert. A Markdown link in chat does not put a button in the alert. Include that URL as a Markdown link in the chat too. Never invent a URL or include passwords, one-time codes, or private access tokens in it.
-5. macOS: run `~/.local/bin/chatgpt-attention-alert [--action-url "<verified HTTPS page URL>"] "<chat title>" "<what the user needs to do>" "<exact chat URL>"`.
-6. Windows: run `& "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Title "<chat title>" -Message "<what the user needs to do>" -ChatUrl "<exact chat URL>" [-ActionUrl "<verified HTTPS page URL>"]`.
-7. The card stays visible until the user acknowledges it. **요청 페이지 열기** opens the supplied page; the separate chat action opens the supplied conversation. The sound and acknowledge buttons keep their own actions. A sound plays only if an HTTPS ChatGPT conversation URL is supplied; the helper opens that chat before playing the sound.
-8. If the active chat URL is unavailable, do not guess it. Show the title and action silently, without a chat-opening action.
+5. For a Codex chat, use the Codex thread tools to identify this chat by its exact title and workspace, then pass its returned UUID as `--resume-thread "<exact UUID>"` on macOS. Never infer the UUID. This adds a **Resume** button; clicking it queues a continuation message in that exact Codex thread and opens the chat. The message includes the alert's requested action, tells Codex to verify it, and never treats an unverified action as complete. If no exact UUID is available, omit the option. Windows support is pending its matching companion implementation.
+6. macOS: run `~/.local/bin/chatgpt-attention-alert [--resume-thread "<exact Codex thread UUID>"] [--action-url "<verified HTTPS page URL>"] "<chat title>" "<what the user needs to do>" "<exact chat URL>"`.
+7. Windows: run `& "$env:LOCALAPPDATA\ChatGPTAttentionAlert\alert.ps1" -Title "<chat title>" -Message "<what the user needs to do>" -ChatUrl "<exact chat URL>" [-ActionUrl "<verified HTTPS page URL>"]`.
+8. The card stays visible until the user acknowledges it. **요청 페이지 열기** opens the supplied page; the separate chat action opens the supplied conversation. The sound and acknowledge buttons keep their own actions. A sound plays only if an HTTPS ChatGPT conversation URL is supplied; the helper opens that chat before playing the sound.
+9. If the active chat URL is unavailable, do not guess it. Show the title and action silently, without a chat-opening action.
 
 ## Alert colors
 
 When the user asks to customize this companion's colors, update its saved palette with the installed macOS command. Agents may run this local settings command only in response to the user's color request; do not infer a preference from unrelated messages.
 
 Users can open the visual settings from the menu bar **GPT → 색상·투명도 설정…** while an alert is open, or at any time with `~/.local/bin/chatgpt-attention-alert --settings`.
+The appearance window follows the macOS display language in Korean, English, Japanese, or Chinese; other locales use English. The palette file's role names and command options stay language-neutral.
 
 ```sh
 ~/.local/bin/chatgpt-attention-alert --color accent '#7C5CFF'

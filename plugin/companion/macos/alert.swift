@@ -24,6 +24,21 @@ let linkExpiresAt = CommandLine.arguments.count > 14 ? TimeInterval(CommandLine.
 let retryAfter = CommandLine.arguments.count > 15 ? TimeInterval(CommandLine.arguments[15]) ?? 0 : 0
 let colorsPath = CommandLine.arguments.count > 16 ? CommandLine.arguments[16] : ""
 let appearanceSettingsPath = CommandLine.arguments.count > 17 ? CommandLine.arguments[17] : ""
+let resumeThreadID = CommandLine.arguments.count > 18 ? CommandLine.arguments[18] : ""
+let canResume = UUID(uuidString: resumeThreadID) != nil
+let language = Locale.preferredLanguages.first?.split(separator: "-").first.map(String.init) ?? "en"
+func tr(_ ko: String, _ en: String, _ ja: String, _ zh: String) -> String {
+    switch language { case "ko": return ko; case "ja": return ja; case "zh": return zh; default: return en }
+}
+func resumePrompt() -> String {
+    let request = "\n\n\(actionText)"
+    switch language {
+    case "ko": return "중단된 작업을 이 대화에서 재개해 주세요. 사용자는 '작업 재개'를 눌러 요청된 조치를 수행했다고 알렸습니다. 기존 상태를 확인해 조치가 완료된 것이 확인되면 원래 작업을 계속하세요. 확인할 수 없다면 성공했다고 가정하지 말고 남은 조치를 알려 주세요.\n\n알림에 적힌 요청:\(request)"
+    case "ja": return "この会話で中断した作業を再開してください。ユーザーは「再開」を選び、依頼された操作を行ったと伝えています。既存の状態を確認し、完了が確認できたら元の作業を続けてください。確認できない場合は成功と決めつけず、必要な操作を伝えてください。\n\n通知に記載された依頼:\(request)"
+    case "zh": return "请在此对话中继续中断的任务。用户选择了“继续”，表示已执行所请求的操作。请检查当前状态；确认完成后继续原任务。如果无法确认，请勿假定成功，并说明还需要什么操作。\n\n提醒中的请求：\(request)"
+    default: return "Resume the interrupted work in this conversation. By selecting Resume, the user says they performed the requested action. Verify the current state; continue the original task if completion is confirmed. If you cannot verify it, do not assume success; state what is still needed.\n\nRequest shown in the alert:\(request)"
+    }
+}
 var savedColors: [String: String] = [:]
 var savedOpacities: [String: String] = [:]
 if let contents = try? String(contentsOfFile: colorsPath, encoding: .utf8) {
@@ -182,8 +197,10 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
     let reissueAvailableAt: TimeInterval
     let alertWindow: NSWindow
     let appearanceSettingsPath: String
+    let resumeThreadID: String
+    let resumeMessage: String
     var appearanceSettingsProcess: Process?
-    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow, appearanceSettingsPath: String) {
+    init(pauseUntilPath: String, recommendationURL: URL?, actionURL: URL?, linkExpiresAt: TimeInterval, reissueAvailableAt: TimeInterval, alertWindow: NSWindow, appearanceSettingsPath: String, resumeThreadID: String, resumeMessage: String) {
         self.pauseUntilPath = pauseUntilPath
         self.recommendationURL = recommendationURL
         self.actionURL = actionURL
@@ -191,6 +208,8 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         self.reissueAvailableAt = reissueAvailableAt
         self.alertWindow = alertWindow
         self.appearanceSettingsPath = appearanceSettingsPath
+        self.resumeThreadID = resumeThreadID
+        self.resumeMessage = resumeMessage
     }
 
     @objc func acknowledge(_ sender: Any?) {
@@ -271,6 +290,46 @@ final class AlertActions: NSObject, NSGestureRecognizerDelegate {
         actionLabel?.stringValue = "대화창을 열었습니다. 이 알림은 확인을 누를 때까지 유지됩니다."
     }
 
+    @objc func resume(_ sender: NSButton) {
+        guard UUID(uuidString: resumeThreadID) != nil else { return }
+        let paths = ["/opt/homebrew/bin/codex", "/usr/local/bin/codex"] + (ProcessInfo.processInfo.environment["PATH"] ?? "").split(separator: ":").map { URL(fileURLWithPath: String($0)).appendingPathComponent("codex").path }
+        guard let executable = paths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+            actionLabel?.stringValue = tr("Codex CLI를 찾지 못했습니다. 설치 후 다시 시도해 주세요.", "Codex CLI was not found. Install it and try again.", "Codex CLI が見つかりません。インストールして再試行してください。", "找不到 Codex CLI。请安装后重试。")
+            NSSound.beep()
+            return
+        }
+        sender.isEnabled = false
+        actionLabel?.stringValue = tr("요청을 대화에 보내는 중…", "Sending the resume request…", "再開リクエストを送信中…", "正在发送继续请求…")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: executable)
+            process.arguments = ["queue", "--thread", self.resumeThreadID, "--message", self.resumeMessage]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            process.standardInput = FileHandle.nullDevice
+            do {
+                try process.run()
+                process.waitUntilExit()
+                DispatchQueue.main.async {
+                    sender.isEnabled = true
+                    if process.terminationStatus == 0 {
+                        actionLabel?.stringValue = tr("재개 요청을 보냈습니다. Codex가 기존 작업을 확인합니다.", "Resume request sent. Codex will check the existing task.", "再開リクエストを送信しました。Codex が既存の作業を確認します。", "已发送继续请求。Codex 将检查现有任务。")
+                        if let url = URL(string: "codex://threads/\(self.resumeThreadID)") { NSWorkspace.shared.open(url) }
+                    } else {
+                        actionLabel?.stringValue = tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。")
+                        NSSound.beep()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    sender.isEnabled = true
+                    actionLabel?.stringValue = tr("보내지 못했습니다. Codex 채팅을 열어 다시 시도해 주세요.", "Could not send. Open the Codex chat and try again.", "送信できませんでした。Codex チャットを開いて再試行してください。", "发送失败。请打开 Codex 对话并重试。")
+                    NSSound.beep()
+                }
+            }
+        }
+    }
+
     @objc func openRecommendation(_ sender: Any?) {
         guard let recommendationURL else { return }
         NSWorkspace.shared.open(recommendationURL)
@@ -339,7 +398,7 @@ pulse.repeatCount = .infinity
 card.layer?.add(pulse, forKey: "glow")
 window.contentView = card
 
-let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window, appearanceSettingsPath: appearanceSettingsPath)
+let actions = AlertActions(pauseUntilPath: pauseUntilPath, recommendationURL: recommendation?.url, actionURL: actionURL, linkExpiresAt: linkExpiresAt, reissueAvailableAt: reissueAvailableAt, alertWindow: window, appearanceSettingsPath: appearanceSettingsPath, resumeThreadID: canResume ? resumeThreadID : "", resumeMessage: resumePrompt())
 let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 statusItem.button?.title = "GPT"
 let statusMenu = NSMenu()
@@ -347,7 +406,7 @@ let showAlertItem = NSMenuItem(title: "GPT 알리미 열어줘", action: #select
 showAlertItem.target = actions
 statusMenu.addItem(showAlertItem)
 statusMenu.addItem(.separator())
-let appearanceItem = NSMenuItem(title: "색상·투명도 설정…", action: #selector(AlertActions.openAppearanceSettings(_:)), keyEquivalent: "")
+let appearanceItem = NSMenuItem(title: tr("색상·투명도 설정…", "Color & Opacity Settings…", "色と不透明度の設定…", "颜色和不透明度设置…"), action: #selector(AlertActions.openAppearanceSettings(_:)), keyEquivalent: "")
 appearanceItem.target = actions
 statusMenu.addItem(appearanceItem)
 statusMenu.addItem(.separator())
@@ -440,26 +499,34 @@ let cardClick = NSClickGestureRecognizer(target: actions, action: #selector(Aler
 cardClick.delegate = actions
 card.addGestureRecognizer(cardClick)
 let sound = NSButton(title: soundEnabled ? "소리 끄기" : "소리 켜기", target: actions, action: #selector(AlertActions.toggleSound(_:)))
-sound.frame = NSRect(x: 20, y: 16, width: 104, height: 28)
+sound.frame = NSRect(x: 16, y: 16, width: canResume ? 86 : 104, height: 28)
 sound.bezelStyle = .rounded
 styleButton(sound)
 card.addSubview(sound)
 let pause = NSButton(title: "24시간 중지", target: actions, action: #selector(AlertActions.pauseForDay(_:)))
-pause.frame = NSRect(x: 136, y: 16, width: 140, height: 28)
+pause.frame = NSRect(x: canResume ? 108 : 136, y: 16, width: canResume ? 112 : 140, height: 28)
 pause.bezelStyle = .rounded
 styleButton(pause)
 card.addSubview(pause)
 
 if canOpenChat {
-    let open = NSButton(title: "채팅 열기", target: actions, action: #selector(AlertActions.openChat(_:)))
-    open.frame = NSRect(x: 300, y: 16, width: 96, height: 28)
+    let open = NSButton(title: tr("채팅 열기", "Open chat", "チャットを開く", "打开对话"), target: actions, action: #selector(AlertActions.openChat(_:)))
+    open.frame = NSRect(x: canResume ? 228 : 300, y: 16, width: canResume ? 90 : 96, height: 28)
     open.bezelStyle = .rounded
     styleButton(open)
     card.addSubview(open)
 }
 
+if canResume {
+    let resume = NSButton(title: tr("작업 재개", "Resume", "再開", "继续"), target: actions, action: #selector(AlertActions.resume(_:)))
+    resume.frame = NSRect(x: 326, y: 16, width: 96, height: 28)
+    resume.bezelStyle = .rounded
+    styleButton(resume, prominent: true)
+    card.addSubview(resume)
+}
+
 let done = NSButton(title: "확인", target: actions, action: #selector(AlertActions.acknowledge(_:)))
-done.frame = NSRect(x: 420, y: 16, width: 76, height: 28)
+done.frame = NSRect(x: canResume ? 430 : 420, y: 16, width: canResume ? 72 : 76, height: 28)
 done.bezelStyle = .rounded
 styleButton(done, prominent: true)
 card.addSubview(done)

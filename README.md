@@ -31,9 +31,10 @@ Open-source local desktop companion and plugin package for persistent, chat-labe
 - Can show at most one small developer-service recommendation per calendar month when an alert title/action matches a listed topic. Authentication and sensitive-code alerts are excluded.
 - Recommendation matching uses local keyword rules on the alert title and action. It makes no AI/model request, spends zero AI tokens on recommendations, and does not save or send the alert text. The card discloses this in small text; use `--recommendations off` on macOS or `-Recommendations off` on Windows to disable it.
 - Offers an **Open chat** button only when a chat URL is provided.
+- On macOS, offers **Resume** when given an exact Codex thread UUID. Clicking queues a continuation message containing the alert request, asks Codex to verify completion, and opens that thread. It does not claim the action succeeded without verification. Requires Codex CLI; Windows support is pending.
 - Lets the agent include a verified HTTPS action page in the alert with **요청 페이지 열기**, separate from the chat-opening action.
 - Adds a macOS menu-bar and Windows notification-area **GPT 알리미 열어줘** action to restore an alert after another window or browser covers it.
-- Runs locally and sends no alert content to a server.
+- Runs locally. Alert content stays local unless the user clicks **Resume**; that action sends the selected alert request to the matching Codex thread through the local Codex CLI.
 
 The public website has separate Korean landing pages for persistent alerts and authentication context. Its optional, consent-based research tracks only daily aggregate page and button counts by coarse Cloudflare country/first-level region, locale, broad device class, experiment variant, and allowlisted campaign label. It stores no IP address, account, exact query/referrer, browser ID, alert text, or installation result. Read [the privacy notice](https://delight0517-art.github.io/chatgpt-attention-alert/privacy.html) before opting in. The companion itself does not send alert content to this website analytics service.
 
@@ -78,7 +79,7 @@ Open the visual appearance settings at any time with:
 ~/.local/bin/chatgpt-attention-alert --settings
 ```
 
-While an alert is open, the menu bar **GPT** menu also has **색상·투명도 설정…**. Pick a HEX color and adjust each role's opacity slider, then select **저장**; the next alert uses the changes.
+While an alert is open, the menu bar **GPT** menu also has **Color & Opacity Settings** (localized to Korean, English, Japanese, or Chinese; other system languages use English). Pick a HEX color and adjust each role's opacity slider, then select **Save**; the next alert uses the changes.
 
 Try it:
 
@@ -91,7 +92,10 @@ Try it:
 ~/.local/bin/chatgpt-attention-alert --sound-file default
 ~/.local/bin/chatgpt-attention-alert --recommendations off
 ~/.local/bin/chatgpt-attention-alert --auth "GitHub" "delight0517" "Current chat" "Complete sign-in" "https://chatgpt.com/c/..."
+~/.local/bin/chatgpt-attention-alert --resume-thread "<exact Codex thread UUID>" "Current chat" "Complete sign-in" "https://chatgpt.com/c/..."
 ```
+
+The **Resume** button is shown only for a valid UUID. Clicking it sends the alert's request to that existing Codex session through `codex queue --thread … --message …`; the user must click the button to send. Do not include passwords, one-time codes, or tokens in the alert request.
 
 For another provider, replace `GitHub` and the account with the exact service and account. Add `--action-url "https://github.com/login/device"` to show the provider page button (**--login-url** remains an alias). If the provider reports an expiry or rate-limit reset time, add `--expires-at <unix-seconds>` and/or `--retry-after <unix-seconds>`. The card keeps the link available until its reported expiry. Once a retry limit ends, **새 인증 링크 요청** copies a fresh-request message and opens the conversation; paste and send that message to get a new link. The alert stays open until acknowledged. Use the macOS menu-bar **GPT** menu to bring it forward again.
 
