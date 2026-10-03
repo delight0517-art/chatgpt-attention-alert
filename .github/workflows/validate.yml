@@ -13,6 +13,7 @@ jobs:
       - name: Check Swift and zsh syntax
         run: |
           swiftc -typecheck plugin/companion/macos/alert.swift
+          swiftc -typecheck plugin/companion/macos/appearance-settings.swift
           zsh -n plugin/companion/macos/chatgpt-attention-alert
       - name: Check analytics script and worker
         run: |

@@ -9,16 +9,72 @@ stack_index="$config/stack-index"
 pause_until="$config/pause-until"
 recommendations_pref="$config/recommendations"
 recommendation_state="$config/recommendation-state"
+colors_pref="$config/colors"
 mkdir -p "$config"
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'USAGE'
 Usage:
   chatgpt-attention-alert [--auth <service> <account>] [--action-url <https-url>] [--expires-at <unix-seconds>] [--retry-after <unix-seconds>] <chat-title> <message> [chat-url]
+  chatgpt-attention-alert --resume-thread <codex-thread-uuid> <chat-title> <message> [chat-url]
   chatgpt-attention-alert --sound on|off|toggle
   chatgpt-attention-alert --sound-file <file.wav|default>
   chatgpt-attention-alert --recommendations on|off
+  chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB>
+  chatgpt-attention-alert --color reset
+  chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100>
+  chatgpt-attention-alert --opacity reset
+  chatgpt-attention-alert --settings
 USAGE
+  exit 0
+fi
+
+if [[ "${1:-}" == "--settings" ]]; then
+  exec /usr/bin/swift "$root/appearance-settings.swift" "$colors_pref"
+fi
+
+if [[ "${1:-}" == "--color" ]]; then
+  role=${2:-}
+  color=${3:-}
+  if [[ "$role" == "reset" && -z "$color" ]]; then
+    rm -f "$colors_pref"
+    /usr/bin/open 'easypaster://appearance?reset=colors' >/dev/null 2>&1 || true
+    exit 0
+  fi
+  case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB> | reset' >&2; exit 2 ;; esac
+  if [[ ! "$color" =~ '^#[[:xdigit:]]{6}$' ]]; then print 'Color must be a hex value like #33DDF2.' >&2; exit 2; fi
+  touch "$colors_pref"
+  chmod 600 "$colors_pref"
+  tmp="$colors_pref.tmp.$$"
+  awk -F= -v key="$role" -v value="$color" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$colors_pref"
+  /usr/bin/open "easypaster://appearance?role=$role&value=${color#\#}" >/dev/null 2>&1 || true
+  exit 0
+fi
+
+if [[ "${1:-}" == "--opacity" ]]; then
+  role=${2:-}
+  opacity=${3:-}
+  if [[ "$role" == "reset" && -z "$opacity" ]]; then
+    if [[ -r "$colors_pref" ]]; then
+      tmp="$colors_pref.tmp.$$"
+      awk -F= '$1 !~ /^opacity\./ { print }' "$colors_pref" > "$tmp"
+      chmod 600 "$tmp"
+      if [[ -s "$tmp" ]]; then mv "$tmp" "$colors_pref"; else rm -f "$tmp" "$colors_pref"; fi
+    fi
+    /usr/bin/open 'easypaster://appearance?reset=opacity' >/dev/null 2>&1 || true
+    exit 0
+  fi
+  case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100> | reset' >&2; exit 2 ;; esac
+  if [[ ! "$opacity" == <-> ]] || (( opacity > 100 )); then print 'Opacity must be a whole-number percentage from 0 to 100.' >&2; exit 2; fi
+  touch "$colors_pref"
+  chmod 600 "$colors_pref"
+  tmp="$colors_pref.tmp.$$"
+  awk -F= -v key="opacity.$role" -v value="$opacity" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$colors_pref"
+  /usr/bin/open "easypaster://appearance?role=opacity&value=$opacity" >/dev/null 2>&1 || true
   exit 0
 fi
 
@@ -35,13 +91,19 @@ fi
 
 if [[ "${1:-}" == "--sound" ]]; then
   case "${2:-}" in
-    on|off) print -r -- "$2" > "$pref" ;;
+    on|off)
+      print -r -- "$2" > "$pref"
+      /usr/bin/open "easypaster://appearance?role=sound&value=$2" >/dev/null 2>&1 || true
+      ;;
     toggle)
       if [[ -r "$pref" && "$(<"$pref")" == "off" ]]; then
         print -r -- on > "$pref"
+        sound_state=on
       else
         print -r -- off > "$pref"
+        sound_state=off
       fi
+      /usr/bin/open "easypaster://appearance?role=sound&value=$sound_state" >/dev/null 2>&1 || true
       ;;
     *) print "Usage: chatgpt-attention-alert --sound on|off|toggle" >&2; exit 2 ;;
   esac
@@ -64,17 +126,23 @@ fi
 auth_service=""
 auth_account=""
 login_url=""
+resume_thread=""
 link_expires_at=0
 retry_after=0
 while [[ "${1:-}" == --* ]]; do
   case "$1" in
     --auth) auth_service=${2:-}; auth_account=${3:-}; shift 3 ;;
+    --resume-thread) resume_thread=${2:-}; shift 2 ;;
     --action-url|--login-url) login_url=${2:-}; shift 2 ;;
     --expires-at) link_expires_at=${2:-}; shift 2 ;;
     --retry-after) retry_after=${2:-}; shift 2 ;;
     *) break ;;
   esac
 done
+if [[ -n "$resume_thread" && ! "$resume_thread" =~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' ]]; then
+  print 'Resume requires an exact Codex thread UUID.' >&2
+  exit 2
+fi
 if [[ -n "$auth_service" && -z "$auth_account" || -z "$auth_service" && -n "$auth_account" ]]; then
   print 'Both --auth <service> and <account> are required.' >&2
   exit 2
@@ -112,4 +180,4 @@ if [[ -r "$custom_sound_pref" ]]; then custom_sound=$(<"$custom_sound_pref"); fi
 recommendations=on
 if [[ -r "$recommendations_pref" ]]; then recommendations=$(<"$recommendations_pref"); fi
 [[ "$recommendations" == "off" ]] || recommendations=on
-/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" >/dev/null 2>&1 </dev/null &!
+/usr/bin/swift "$root/alert.swift" "$title" "$message" "$chat_url" "$sound" "$pref" "$stack_index" "$custom_sound" "$pause_until" "$auth_service" "$auth_account" "$recommendations" "$recommendation_state" "$login_url" "$link_expires_at" "$retry_after" "$colors_pref" "$root/appearance-settings.swift" "$resume_thread" >/dev/null 2>&1 </dev/null &!
