@@ -38,6 +38,7 @@ if [[ "${1:-}" == "--color" ]]; then
   color=${3:-}
   if [[ "$role" == "reset" && -z "$color" ]]; then
     rm -f "$colors_pref"
+    /usr/bin/open 'easypaster://appearance?reset=colors' >/dev/null 2>&1 || true
     exit 0
   fi
   case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --color <background|accent|text|button|button-text> <#RRGGBB> | reset' >&2; exit 2 ;; esac
@@ -48,6 +49,7 @@ if [[ "${1:-}" == "--color" ]]; then
   awk -F= -v key="$role" -v value="$color" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
   chmod 600 "$tmp"
   mv "$tmp" "$colors_pref"
+  /usr/bin/open "easypaster://appearance?role=$role&value=${color#\#}" >/dev/null 2>&1 || true
   exit 0
 fi
 
@@ -61,6 +63,7 @@ if [[ "${1:-}" == "--opacity" ]]; then
       chmod 600 "$tmp"
       if [[ -s "$tmp" ]]; then mv "$tmp" "$colors_pref"; else rm -f "$tmp" "$colors_pref"; fi
     fi
+    /usr/bin/open 'easypaster://appearance?reset=opacity' >/dev/null 2>&1 || true
     exit 0
   fi
   case "$role" in background|accent|text|button|button-text) ;; *) print 'Usage: chatgpt-attention-alert --opacity <background|accent|text|button|button-text> <0-100> | reset' >&2; exit 2 ;; esac
@@ -71,6 +74,7 @@ if [[ "${1:-}" == "--opacity" ]]; then
   awk -F= -v key="opacity.$role" -v value="$opacity" '$1 != key { print } END { print key "=" value }' "$colors_pref" > "$tmp"
   chmod 600 "$tmp"
   mv "$tmp" "$colors_pref"
+  /usr/bin/open "easypaster://appearance?role=opacity&value=$opacity" >/dev/null 2>&1 || true
   exit 0
 fi
 
@@ -87,13 +91,19 @@ fi
 
 if [[ "${1:-}" == "--sound" ]]; then
   case "${2:-}" in
-    on|off) print -r -- "$2" > "$pref" ;;
+    on|off)
+      print -r -- "$2" > "$pref"
+      /usr/bin/open "easypaster://appearance?role=sound&value=$2" >/dev/null 2>&1 || true
+      ;;
     toggle)
       if [[ -r "$pref" && "$(<"$pref")" == "off" ]]; then
         print -r -- on > "$pref"
+        sound_state=on
       else
         print -r -- off > "$pref"
+        sound_state=off
       fi
+      /usr/bin/open "easypaster://appearance?role=sound&value=$sound_state" >/dev/null 2>&1 || true
       ;;
     *) print "Usage: chatgpt-attention-alert --sound on|off|toggle" >&2; exit 2 ;;
   esac

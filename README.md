@@ -151,7 +151,7 @@ Pass the full HTTPS conversation URL as the third macOS argument or `-ChatUrl` o
 
 ## Easy Paster App Store integration
 
-On macOS, when Easy Paster (bundle ID `app.flowguardian.mac`) is installed and registered, the open-source companion forwards new alerts to its `easypaster://needs-you` handler. The app provides the persistent alert list and settings; the companion remains independently usable and still displays its own alert when Easy Paster is unavailable. The GPT Tool code remains in this MIT-licensed repository. The App Store app bundles its alert UI and does not download executable code. In the App Store app, Resume copies the request summary and opens the related chat; direct CLI queueing remains available from the open-source companion.
+On macOS, when Easy Paster (bundle ID `app.flowguardian.mac`) is installed and registered, the open-source companion forwards new alerts to its `easypaster://needs-you` handler. The app provides the persistent alert list and settings; `--color`, `--opacity`, and `--sound` also update its matching preferences through `easypaster://appearance`. The companion remains independently usable and still displays its own alert when Easy Paster is unavailable. The GPT Tool code remains in this MIT-licensed repository. The App Store app bundles its alert UI and does not download executable code. In the App Store app, Resume copies the request summary and opens the related chat; direct CLI queueing remains available from the open-source companion.
 
 ## Project layout
 
