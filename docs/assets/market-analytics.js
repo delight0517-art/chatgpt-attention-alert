@@ -85,6 +85,23 @@
     return { source, medium, campaign };
   }
 
+  function ensureConsentStyles() {
+    if (document.getElementById("gptaa-analytics-consent-style")) return;
+    const style = document.createElement("style");
+    style.id = "gptaa-analytics-consent-style";
+    style.textContent = `
+      #analytics-consent{position:fixed;z-index:20;left:16px;right:16px;bottom:16px;max-width:840px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:16px;background:#111a2ceb;color:#eff3fa;border:1px solid #8fdcc7;border-radius:14px;box-shadow:0 12px 36px #0009;backdrop-filter:blur(12px)}
+      #analytics-consent[hidden]{display:none}
+      #analytics-consent p{margin:0;flex:1;color:inherit;font-size:.82rem;line-height:1.5}
+      #analytics-consent a{color:#a4f1d7}
+      #analytics-consent div{display:flex;gap:8px;flex-shrink:0}
+      #analytics-consent button{min-width:68px;padding:8px 12px;border-radius:8px;border:1px solid #8fdcc7;background:transparent;color:inherit;cursor:pointer;font:inherit}
+      #analytics-consent button[data-choice="yes"]{background:#83e6c0;color:#07150f;font-weight:700}
+      @media(max-width:700px){#analytics-consent{align-items:flex-start;flex-direction:column}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function emit(event) {
     if (analyticsSignal || localGet(consentKey) !== "yes") return;
     const variant = activeVariant();
@@ -106,6 +123,7 @@
   }
 
   function showConsent() {
+    ensureConsentStyles();
     let banner = document.getElementById("analytics-consent");
     if (!banner) {
       banner = document.createElement("aside");
